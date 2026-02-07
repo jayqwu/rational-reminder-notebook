@@ -1,0 +1,249 @@
+{
+	"Investing": {
+		"Asset allocation": [
+			"asset allocation",
+			"portfolio construction",
+			"rebalancing",
+			"risk tolerance",
+			"glide path",
+			"target date",
+			"asset class",
+			"asset classes",
+			"core",
+			"satellite"
+		],
+		"Diversification": [
+			"diversification",
+			"diversify",
+			"correlation",
+			"uncorrelated",
+			"concentration",
+			"sector",
+			"geography",
+			"international",
+			"emerging markets",
+			"home bias"
+		],
+		"Expected returns": [
+			"expected return",
+			"expected returns",
+			"risk premium",
+			"risk premiums",
+			"equity risk premium",
+			"term premium",
+			"credit premium"
+		],
+		"Portfolio implementation": [
+			"indexing",
+			"index fund",
+			"index funds",
+			"index methodology",
+			"tracking error"
+		],
+		"Asset types": [
+			"credit",
+			"treasuries",
+			"corporate bonds",
+			"real estate",
+			"reits",
+			"preferred shares",
+			"municipal bonds",
+			"commodities"
+		]
+	},
+	"Retirement planning": {
+		"Savings and targets": [
+			"retirement planning",
+			"retirement plan",
+			"how much to save",
+			"savings rate",
+			"pension",
+			"financial independence",
+			"early retirement",
+			"retirement target"
+		],
+		"Accounts and benefits": [
+			"rrsp",
+			"401k",
+			"ira",
+			"roth",
+			"tfsa",
+			"social security",
+			"cpp",
+			"oas",
+			"annuity"
+		],
+		"Drawdown strategy": [
+			"safe withdrawal",
+			"withdrawal rate",
+			"4% rule",
+			"sequence of returns",
+			"decumulation",
+			"drawdown",
+			"spending policy",
+			"retirement spending"
+		],
+		"Retirement income": [
+			"retirement income",
+			"income replacement",
+			"pension income",
+			"annuity",
+			"social security",
+			"cpp",
+			"oas",
+			"required minimum distribution",
+			"rmd"
+		],
+		"Early retirement": [
+			"early retirement",
+			"retire early",
+			"financial independence",
+			"financial independence retire early",
+			"fire movement",
+			"bridge strategy",
+			"retirement gap",
+			"healthcare gap"
+		]
+	},
+	"Tax optimization": {
+		"Account location": [
+			"tax-advantaged",
+			"tax deferred",
+			"taxable",
+			"taxable account",
+			"asset location",
+			"tax location",
+			"rrsp",
+			"tfsa",
+			"401k",
+			"ira",
+			"hsa"
+		],
+		"Rates and brackets": [
+			"tax",
+			"taxes",
+			"marginal rate",
+			"tax bracket",
+			"withholding",
+			"effective rate",
+			"progressive",
+			"corporate tax",
+			"estate tax"
+		],
+		"Strategies": [
+			"capital gains",
+			"dividend",
+			"tax loss",
+			"tax-loss harvesting",
+			"harvesting",
+			"conversion",
+			"backdoor",
+			"roth",
+			"traditional"
+		]
+	},
+	"Behavioral finance": {
+		"Biases and errors": [
+			"behavioral",
+			"bias",
+			"biases",
+			"overconfidence",
+			"loss aversion",
+			"recency",
+			"anchoring",
+			"framing",
+			"heuristic",
+			"mistake",
+			"mistakes"
+		],
+		"Emotion and discipline": [
+			"psychology",
+			"emotions",
+			"fear",
+			"greed",
+			"regret",
+			"self control",
+			"discipline",
+			"stress",
+			"panic",
+			"confidence"
+		],
+		"Decision behavior": [
+			"behavior",
+			"decision making",
+			"cognitive",
+			"mental accounting",
+			"herding",
+			"herd",
+			"narrative",
+			"prospect theory",
+			"habits"
+		]
+	},
+	"Making financial decisions": {
+		"Evidence and research": [
+			"evidence",
+			"peer reviewed",
+			"statistics",
+			"statistical",
+			"probability",
+			"regression",
+			"sample size",
+			"confidence interval",
+			"effect size",
+			"data quality"
+		],
+		"Evaluating funds": [
+			"mutual fund",
+			"exchange traded fund",
+			"expense ratio",
+			"tracking error",
+			"manager skill"
+		],
+		"Strategy assessment": [
+			"due diligence",
+			"backtest",
+			"backtesting",
+			"methodology",
+			"overfitting",
+			"out of sample",
+			"robustness",
+			"market timing",
+			"factor timing",
+			"tactical"
+		]
+	},
+	"Financial planning": {
+		"Goals and budgeting": [
+			"financial plan",
+			"goal setting",
+			"budget",
+			"cash flow",
+			"debt payoff",
+			"debt repayment",
+			"mortgage payoff",
+			"tradeoffs"
+		],
+		"Insurance and protection": [
+			"insurance",
+			"life insurance",
+			"disability",
+			"health insurance",
+			"long term care",
+			"liability",
+			"coverage",
+			"premium",
+			"policy"
+		],
+		"Life events": [
+			"emergency fund",
+			"estate planning",
+			"estate plan",
+			"inheritance",
+			"beneficiary",
+			"beneficiary designation",
+			"beneficiaries",
+			"trust"
+		]
+	}
+}
