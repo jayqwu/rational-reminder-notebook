@@ -18,8 +18,8 @@ from tqdm import tqdm
 
 # Configuration
 PODCAST_DIRECTORY_URL = "https://rationalreminder.ca/podcast-directory"
-TRANSCRIPTS_DIR = "transcripts"
-FAILED_URLS_FILE = "failed_episodes.json"
+TRANSCRIPTS_DIR = "output/rational_reminder"
+FAILED_URLS_FILE = "output/failed_rr.json"
 DELAY_BETWEEN_REQUESTS = 0.5  # seconds
 
 DISCLAIMER_PREFIXES = [
@@ -152,7 +152,7 @@ def fetch_episode_page(episode_url):
         return None
 
 
-def extract_key_points(soup):
+def extract_summary(soup):
     """Extract key points from the episode page.
     
     Key points are lines that contain timestamps. Timestamps match pattern:
@@ -163,34 +163,34 @@ def extract_key_points(soup):
     Returns:
         List of key points with timestamps removed, or empty list if not found.
     """
-    key_points = []
+    summary = []
     
     # Timestamp patterns at start or end of line
     # Format: optional bracket/paren, MM:SS or HH:MM:SS, optional decimal seconds, optional bracket/paren
     # Examples: [0:03:52.2], (0:03:52), [01:43], (0:32.5)
-    timestamp_at_start = r'^[\[\(]?\d{1,2}:\d{1,2}(:\d{1,2})?(\.\d+)?[\]\)]?\s*'
-    timestamp_at_end = r'\s*[\[\(]?\d{1,2}:\d{1,2}(:\d{1,2})?(\.\d+)?[\]\)]?$'
+    timestamp_at_start = r'^[\[\(]?\d{1,2}:\d{1,2}(:\d{1,2})?(\.\d+)?(:\d+)?[\]\)]?\s*'
+    timestamp_at_end = r'\s*[\[\(]?\d{1,2}:\d{1,2}(:\d{1,2})?(\.\d+)?(:\d+)?[\]\)]?$'
     
     # Look for "Key Points" heading - check h2/h3 first (newer format)
-    key_points_heading = None
+    summary_heading = None
     for heading in soup.find_all(['h2', 'h3']):
         heading_text = heading.get_text(strip=True).lower()
         if 'key points' in heading_text:
-            key_points_heading = heading
+            summary_heading = heading
             break
     
     # If not found in h2/h3, look for <strong> tags with "Key Points" (older format)
-    if not key_points_heading:
+    if not summary_heading:
         for strong in soup.find_all('strong'):
             strong_text = strong.get_text(strip=True).lower()
             if 'key points' in strong_text:
                 # For older format, the <strong> is inside a <p>, use the <p> as the reference
-                key_points_heading = strong.parent
+                summary_heading = strong.parent
                 break
     
     # If still no heading found, look for a cluster of paragraphs with timestamps
     # This handles episodes without explicit "Key Points" heading
-    if not key_points_heading:
+    if not summary_heading:
         paragraphs = soup.find_all('p')
         timestamp_pattern = r'[\[\(]?\d{1,2}:\d{2}(:\d{2})?(\.\d+)?[\]\)]?'
         
@@ -220,19 +220,19 @@ def extract_key_points(soup):
                             clean_text = re.sub(timestamp_at_start, '', para_text)
                             clean_text = re.sub(timestamp_at_end, '', clean_text).strip()
                             if clean_text and len(clean_text) > 5:
-                                key_points.append(clean_text)
+                                summary.append(clean_text)
                         elif len(para_text) > 50:
                             # Stop if we hit a non-timestamp paragraph with substantial content
                             break
                     
-                    return key_points
+                    return summary
         
         # If we didn't find key points via cluster detection, return empty list
-        return key_points
+        return summary
     
     # If we found a key points heading, collect all text content between it and next major section
     content_blocks = []
-    current = key_points_heading.find_next_sibling()
+    current = summary_heading.find_next_sibling()
     
     while current:
         # Stop at next major heading
@@ -272,29 +272,58 @@ def extract_key_points(soup):
             # Count timestamps in the block - look for [ or ( followed by \d:\d pattern
             timestamp_count = len(re.findall(r'[\[\(]\d{1,2}:\d{2}', block))
             if timestamp_count > 1:
-                # Split where text ends (with period or similar) and next timestamp begins
-                # Pattern: look for ". (" or ". [" or ") (" or "] [" before a timestamp
-                parts = re.split(r'(?<=[.!?)\]])\s+(?=[\[\(]\d{1,2}:\d{2})', block)
-                if len(parts) > 1:
-                    lines = parts
+                # Try splitting directly on leading timestamp pattern
+                # Pattern matches: optional whitespace, opening bracket/paren, timestamp, closing bracket/paren, optional whitespace
+                # This captures the full timestamp marker: [0:12:34] or (1:23:45)
+                parts = re.split(r'\s*([\[\(]\d{1,2}:\d{1,2}(?::\d{1,2})?(?:\.\d+)?[\]\)])\s*', block)
+                
+                # Filter out empty parts and reconstruct by prepending timestamp to following text
+                reconstructed = []
+                i = 0
+                while i < len(parts):
+                    part = parts[i].strip()
+                    if part:
+                        # Check if this looks like a timestamp
+                        if re.match(r'^[\[\(]\d{1,2}:\d{1,2}', part):
+                            # This is a timestamp, combine with next part if it exists
+                            if i + 1 < len(parts) and parts[i + 1].strip():
+                                reconstructed.append(part + ' ' + parts[i + 1].strip())
+                                i += 2
+                                continue
+                            else:
+                                # Timestamp alone, just add it
+                                reconstructed.append(part)
+                        else:
+                            # Not a timestamp, just add it
+                            reconstructed.append(part)
+                    i += 1
+                
+                if len(reconstructed) > 1:
+                    lines = reconstructed
                 else:
-                    # Fallback: Split where closing bracket/paren is followed by opening bracket/paren with timestamp
-                    parts = re.split(r'([\]\)])\s*(?=[\[\(]\d{1,2}:\d{2})', block)
-                    # Reconstruct by joining pairs
-                    reconstructed = []
-                    current_line = ""
-                    for part in parts:
-                        current_line += part
-                        if part in [')', ']']:
+                    # Fallback 1: Split where text ends (with period or similar) and next timestamp begins
+                    # Pattern: look for ". (" or ". [" or ") (" or "] [" before a timestamp
+                    parts = re.split(r'(?<=[.!?)\]])\s+(?=[\[\(]\d{1,2}:\d{2})', block)
+                    if len(parts) > 1:
+                        lines = parts
+                    else:
+                        # Fallback 2: Split where closing bracket/paren is followed by opening bracket/paren with timestamp
+                        parts = re.split(r'([\]\)])\s*(?=[\[\(]\d{1,2}:\d{2})', block)
+                        # Reconstruct by joining pairs
+                        reconstructed = []
+                        current_line = ""
+                        for part in parts:
+                            current_line += part
+                            if part in [')', ']']:
+                                reconstructed.append(current_line)
+                                current_line = ""
+                        if current_line:
                             reconstructed.append(current_line)
-                            current_line = ""
-                    if current_line:
-                        reconstructed.append(current_line)
-                    lines = reconstructed if len(reconstructed) > 1 else lines
+                        lines = reconstructed if len(reconstructed) > 1 else lines
         
         for line in lines:
             line = line.strip()
-            
+
             # Check if line contains timestamp at beginning or end
             has_timestamp = (re.search(timestamp_at_start, line) or 
                            re.search(timestamp_at_end, line))
@@ -304,10 +333,14 @@ def extract_key_points(soup):
                 clean_text = re.sub(timestamp_at_start, '', line)
                 clean_text = re.sub(timestamp_at_end, '', clean_text).strip()
                 
+                # Remove trailing brackets and bullet points
+                clean_text = clean_text.replace("•", "").strip()
+                clean_text = re.sub(r'\s*(\[|\()\s*$', '', clean_text).strip()
+                
                 if clean_text and len(clean_text) > 5:
-                    key_points.append(clean_text)
+                    summary.append(clean_text)
     
-    return key_points
+    return summary
 
 
 def extract_transcript(html_content, episode_url):
@@ -462,7 +495,7 @@ def extract_transcript(html_content, episode_url):
         # Fallback 2: Look for transcript after "Key Points" section
         # Key Points entries have timestamps like [0:58:06] or (0:58)
         paragraphs = soup.find_all('p')
-        last_key_points_idx = -1
+        last_summary_idx = -1
         
         # Find last paragraph with timestamp pattern (handles [/( and with/without seconds)
         timestamp_pattern = r'[\[\(]\d{1,2}:\d{2}(:\d{2})?[\]\)]'
@@ -470,12 +503,12 @@ def extract_transcript(html_content, episode_url):
         for idx, p in enumerate(paragraphs):
             text = p.get_text(" ", strip=True)
             if re.search(timestamp_pattern, text):
-                last_key_points_idx = idx
+                last_summary_idx = idx
         
         # If we found Key Points section, transcript starts after it
-        if last_key_points_idx >= 0 and last_key_points_idx + 1 < len(paragraphs):
+        if last_summary_idx >= 0 and last_summary_idx + 1 < len(paragraphs):
             # Collect all paragraphs after Key Points
-            for p in paragraphs[last_key_points_idx + 1:]:
+            for p in paragraphs[last_summary_idx + 1:]:
                 text = p.get_text(" ", strip=True)
                 if text:
                     transcript_text.append(text)
@@ -523,27 +556,19 @@ def extract_transcript(html_content, episode_url):
     transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
     
     # Extract key points
-    key_points = extract_key_points(soup)
+    summary = extract_summary(soup)
     
-    # Build result with fields in specific order: title, key_points, pub_date, episode_url, transcript, youtube
-    result = {}
-    
-    # Add fields in desired order
-    result['title'] = title
-    
-    if formatted_date:
-        result['pub_date'] = formatted_date
-    
-    result['episode_url'] = episode_url
-    
-    if key_points:
-        result['key_points'] = key_points
-    
-    result['transcript'] = transcript_text
-    
-    # Add YouTube data if found
+    # Build result with fields in specific order: title, pub_date, summary, episode_url, transcript, youtube
+    result = {
+        "title": title,
+        "pub_date": pub_date,
+        "url": episode_url,
+        "summary": summary,
+        "content": transcript_text,
+    }
+
     if youtube_data:
-        result['youtube'] = youtube_data
+        result["youtube"] = youtube_data
     
     return result
 
@@ -592,10 +617,6 @@ def scrape_episode(episode_url):
     # Create filename from title and date
     title = transcript_data['title']
     pub_date = transcript_data.get('pub_date')
-    
-    # Check if key points were not found (they are mandatory)
-    if 'key_points' not in transcript_data:
-        handle_warning(f"No key points found for '{title}' - Key points are mandatory!")
     
     output_file = os.path.join(TRANSCRIPTS_DIR, create_filename_from_title(title, pub_date))
     

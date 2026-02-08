@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Categorize podcast transcripts and generate category-specific markdown files using semantic similarity"""
+"""Compile sources into category-specific markdown files using semantic similarity"""
 
 import argparse
 import csv
@@ -11,8 +11,8 @@ from collections import defaultdict
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
 
-TRANSCRIPTS_DIR = "transcripts"
-METRICS_FILE = "youtube_metrics.csv"
+TRANSCRIPTS_DIR = "output/rational_reminder"
+METRICS_FILE = "output/youtube_metrics.csv"
 TAXONOMY_PATH = Path("taxonomy.json")
 OUTPUT_MATCHES_CSV = Path("episode_category_matches.csv")
 
@@ -75,12 +75,12 @@ def _format_metadata_block(metadata_items, heading_level=2):
     lines.append("\n")
     return lines
 
-def create_episode_text(title, key_points, transcript=None, max_transcript_chars=5000):
+def create_episode_text(title, summary, transcript=None, max_transcript_chars=5000):
     """Create combined text representation of an episode for semantic matching.
     
     Args:
         title: Episode title
-        key_points: List of key points from the episode (can be None or empty)
+        summary: List of key points from the episode (can be None or empty)
         transcript: Optional full transcript (will be truncated if too long)
         max_transcript_chars: Maximum characters to include from transcript
     
@@ -90,13 +90,13 @@ def create_episode_text(title, key_points, transcript=None, max_transcript_chars
     parts = [title] if title else []
     
     # Add key points if available
-    if key_points:
-        if isinstance(key_points, list):
+    if summary:
+        if isinstance(summary, list):
             # Filter out empty or None values
-            valid_points = [str(point) for point in key_points if point]
+            valid_points = [str(point) for point in summary if point]
             parts.extend(valid_points)
         else:
-            point_str = str(key_points).strip()
+            point_str = str(summary).strip()
             if point_str:
                 parts.append(point_str)
     
@@ -161,10 +161,10 @@ def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, m
     """
     # Create episode text representation
     title = episode_data.get('title', '')
-    key_points = episode_data.get('key_points', [])
+    summary = episode_data.get('summary', [])
     transcript = episode_data.get('transcript', [])
     
-    episode_text = create_episode_text(title, key_points, transcript)
+    episode_text = create_episode_text(title, summary, transcript)
     
     # Encode episode text
     episode_embedding = model.encode(episode_text, convert_to_tensor=True)
@@ -339,12 +339,12 @@ def main():
         title = data.get("title", episode_file.stem)
         transcript = _normalize_transcript_paragraphs(data.get("transcript", []))
         episode_url = data.get("episode_url")
-        key_points = data.get("key_points", [])
+        summary = data.get("summary", [])
 
         # Assign category using semantic similarity
         episode_data = {
             'title': title,
-            'key_points': key_points,
+            'summary': summary,
             'transcript': transcript
         }
         category_label, similarity_score, description = assign_category_by_similarity(
@@ -357,7 +357,7 @@ def main():
         episode_record = {
             'title': title,
             'published_date': published_date,
-            'key_points': key_points,
+            'summary': summary,
             'category_relevance': relevance_level,
             'transcript': transcript,
             'episode_url': episode_url,
@@ -383,7 +383,6 @@ def main():
     print(f"  Episodes skipped (percentile < {args.min_percentile}): {episodes_skipped}\n")
     
     # Generate markdown files for each category
-    EPISODES_PER_FILE = 1000
     OUTPUT_DIR = Path("categorized_transcripts")
     OUTPUT_DIR.mkdir(exist_ok=True)
     
@@ -393,64 +392,43 @@ def main():
         
         # Create human-readable filename from category
         base_filename = category.replace("/", "-").replace(":", " -")
+        filepath = OUTPUT_DIR / f"{base_filename}.md"
+        episode_batch = episodes
         
-        # Split episodes into chunks of 1000
-        num_files = (len(episodes) + EPISODES_PER_FILE - 1) // EPISODES_PER_FILE
+        print(f"Generating {filepath} ({len(episode_batch)} episodes)...")
         
-        for file_index in range(num_files):
-            start_idx = file_index * EPISODES_PER_FILE
-            end_idx = min(start_idx + EPISODES_PER_FILE, len(episodes))
-            episode_batch = episodes[start_idx:end_idx]
+        markdown_content = []
+        
+        # Get description for this category
+        description = category_to_description.get(category, "")
+        
+        # Add header first
+        markdown_content.append(f"# {category}\n\n")
             
-            # Create filename with part number if multiple files needed
-            if num_files > 1:
-                filepath = OUTPUT_DIR / f"{base_filename}_part{file_index + 1}.md"
-                part_info = f" (Part {file_index + 1} of {num_files})"
-            else:
-                filepath = OUTPUT_DIR / f"{base_filename}.md"
-                part_info = ""
-            
-            print(f"Generating {filepath} ({len(episode_batch)} episodes)...")
-            
-            markdown_content = []
-            
-            # Get description for this category
-            description = category_to_description.get(category, "")
-            
-            # Add header first
-            markdown_content.append(f"# {category}{part_info}\n\n")
-            
-            # Add description as subheading
-            if description:
-                markdown_content.append(f"## Description\n{description}\n\n")
-            
-            # Add structured summary
-            summary = generate_summary(category, description, episode_batch)
-            markdown_content.append(f"## Summary\n{summary}\n\n")
-            
-            # Create metadata block for category
-            category_metadata = [
-                ("Type", "category"),
-                ("Episodes in file", len(episode_batch)),
-                ("Description", description),
-                ("Source", "Rational Reminder Podcast"),
-                ("Source URL", "https://rationalreminder.ca/podcast/")
-            ]
+        # Add description as subheading
+        if description:
+            markdown_content.append(f"## Description\n{description}\n\n")
+        
+        # Add structured summary
+        summary = generate_summary(category, description, episode_batch)
+        markdown_content.append(f"## Summary\n{summary}\n\n")
+        
+        # Create metadata block for category
+        category_metadata = [
+            ("Type", "category"),
+            ("Episodes in file", len(episode_batch)),
+            ("Description", description),
+            ("Source", "Rational Reminder Podcast"),
+            ("Source URL", "https://rationalreminder.ca/podcast/")
+        ]
 
-            if num_files > 1:
-                category_metadata.extend([
-                    ("Total episodes", len(episodes)),
-                    ("Part", file_index + 1),
-                    ("Total parts", num_files)
-                ])
+        if args.min_percentile > -1.0:
+            category_metadata.append(("Audience Popularity Filter", args.min_percentile))
 
-            if args.min_percentile > -1.0:
-                category_metadata.append(("Audience Popularity Filter", args.min_percentile))
-
-            markdown_content.extend(_format_metadata_block(category_metadata, heading_level=2))
-            
-            # Add episodes
-            for episode in episode_batch:
+        markdown_content.extend(_format_metadata_block(category_metadata, heading_level=2))
+        
+        # Add episodes
+        for episode in episode_batch:
                 # Episode title heading
                 markdown_content.append(f"## {episode['title']}\n\n")
                 
@@ -476,10 +454,10 @@ def main():
                     episode_frontmatter['audience_popularity'] = percentile_display
                     episode_frontmatter['audience_popularity_tier'] = popularity_to_tier(percentile_display)
                 
-                # Add key_points (only if non-empty) and category relevance
-                key_points_data = episode.get('key_points')
-                if key_points_data and (isinstance(key_points_data, list) and len(key_points_data) > 0):
-                    episode_frontmatter['key_points'] = key_points_data
+                # Add summary (only if non-empty) and category relevance
+                summary_data = episode.get('summary')
+                if summary_data and (isinstance(summary_data, list) and len(summary_data) > 0):
+                    episode_frontmatter['summary'] = summary_data
                 if episode.get('category_relevance'):
                     episode_frontmatter['category_relevance'] = episode['category_relevance']
                 
@@ -492,23 +470,23 @@ def main():
                     ("YouTube URL", episode_frontmatter.get("youtube_url")),
                     ("Audience Popularity", episode_frontmatter.get("audience_popularity")),
                     ("Audience Popularity Tier", episode_frontmatter.get("audience_popularity_tier")),
-                    ("Key points", episode_frontmatter.get("key_points")),
+                    ("Key points", episode_frontmatter.get("summary")),
                     ("Category relevance", episode_frontmatter.get("category_relevance"))
                 ]
                 markdown_content.extend(_format_metadata_block(episode_metadata, heading_level=3))
                 
                 for paragraph in episode['transcript']:
                     markdown_content.append(f"{paragraph}\n\n")
-                
+            
                 markdown_content.append("---\n\n")
-            
-            # Write to file
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.writelines(markdown_content)
-            
-            # Get file size
-            file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
-            print(f"  ✓ {filepath} ({file_size_mb:.2f} MB)\n")
+        
+        # Write to file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.writelines(markdown_content)
+        
+        # Get file size
+        file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
+        print(f"  ✓ {filepath} ({file_size_mb:.2f} MB)\n")
     
     # Print summary
     print("\n" + "="*70)
