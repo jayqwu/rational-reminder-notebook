@@ -27,12 +27,29 @@ DISCLAIMER_PREFIXES = [
     "Portfolio management and brokerage services in Canada are offered exclusively by PWL Capital",
     "Is there an error in the transcript? Let us know! Email us at info@rationalreminder.ca.",
     "Be sure to add the episode number for reference",
+    "Nothing herein constitutes an offer or solicitation to buy or sell any security.",
+    "The information provided is for educational purposes only and should not be considered financial advice.",
+
 ]
 
 SPEAKER_FIX_RE = re.compile(r"^([A-Z][A-Za-z .'-]+):(?=\S)")
 
 # Create directory if it doesn't exist
 os.makedirs(TRANSCRIPTS_DIR, exist_ok=True)
+
+# Global debug mode flag
+DEBUG_MODE = False
+
+
+def handle_warning(message):
+    """Handle warning based on debug mode.
+    
+    In debug mode, raises SystemExit. Otherwise, prints warning.
+    """
+    print(f"⚠️  WARNING: {message}")
+    if DEBUG_MODE:
+        print("\n✗ Debug mode enabled - terminating on warning")
+        raise SystemExit(1)
 
 
 def parse_args():
@@ -44,6 +61,8 @@ def parse_args():
                        help="Only retry previously failed URLs")
     parser.add_argument("--failed-file", default=FAILED_URLS_FILE,
                        help="Path to failed URLs JSON file")
+    parser.add_argument("--debug", action="store_true",
+                       help="Debug mode: terminate on any warnings")
     return parser.parse_args()
 
 
@@ -59,7 +78,7 @@ def load_failed_urls(failed_file):
             print(f"✓ Loaded {len(urls)} failed URLs from {failed_file}")
             return urls
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Warning: Could not load failed URLs: {e}")
+        handle_warning(f"Could not load failed URLs: {e}")
         return []
 
 
@@ -131,6 +150,164 @@ def fetch_episode_page(episode_url):
     except requests.RequestException as e:
         print(f"Error fetching {episode_url}: {e}")
         return None
+
+
+def extract_key_points(soup):
+    """Extract key points from the episode page.
+    
+    Key points are lines that contain timestamps. Timestamps match pattern:
+    \\d{1,2}:\\d{2}(:\\d{2})? with optional brackets/parens at beginning or end.
+    
+    Examples: (0:21:19), [0:11:43], 0:09:33), 1:23:05], [01:43], (0:32)
+    
+    Returns:
+        List of key points with timestamps removed, or empty list if not found.
+    """
+    key_points = []
+    
+    # Timestamp patterns at start or end of line
+    # Format: optional bracket/paren, MM:SS or HH:MM:SS, optional decimal seconds, optional bracket/paren
+    # Examples: [0:03:52.2], (0:03:52), [01:43], (0:32.5)
+    timestamp_at_start = r'^[\[\(]?\d{1,2}:\d{1,2}(:\d{1,2})?(\.\d+)?[\]\)]?\s*'
+    timestamp_at_end = r'\s*[\[\(]?\d{1,2}:\d{1,2}(:\d{1,2})?(\.\d+)?[\]\)]?$'
+    
+    # Look for "Key Points" heading - check h2/h3 first (newer format)
+    key_points_heading = None
+    for heading in soup.find_all(['h2', 'h3']):
+        heading_text = heading.get_text(strip=True).lower()
+        if 'key points' in heading_text:
+            key_points_heading = heading
+            break
+    
+    # If not found in h2/h3, look for <strong> tags with "Key Points" (older format)
+    if not key_points_heading:
+        for strong in soup.find_all('strong'):
+            strong_text = strong.get_text(strip=True).lower()
+            if 'key points' in strong_text:
+                # For older format, the <strong> is inside a <p>, use the <p> as the reference
+                key_points_heading = strong.parent
+                break
+    
+    # If still no heading found, look for a cluster of paragraphs with timestamps
+    # This handles episodes without explicit "Key Points" heading
+    if not key_points_heading:
+        paragraphs = soup.find_all('p')
+        timestamp_pattern = r'[\[\(]?\d{1,2}:\d{2}(:\d{2})?(\.\d+)?[\]\)]?'
+        
+        # Find sequences of paragraphs that start with timestamps
+        for i, p in enumerate(paragraphs):
+            p_text = p.get_text(" ", strip=True)
+            # Check if this paragraph starts with a timestamp
+            if re.match(timestamp_at_start, p_text):
+                # Check if there are multiple consecutive paragraphs with timestamps
+                consecutive_count = 1
+                for j in range(i + 1, min(i + 10, len(paragraphs))):
+                    next_text = paragraphs[j].get_text(" ", strip=True)
+                    if re.match(timestamp_at_start, next_text):
+                        consecutive_count += 1
+                    elif len(next_text) > 20:  # Skip very short paragraphs
+                        break
+                
+                # If we found at least 3 consecutive timestamped paragraphs, use this as key points
+                if consecutive_count >= 3:
+                    # Process from this paragraph onward
+                    for idx in range(i, len(paragraphs)):
+                        para_text = paragraphs[idx].get_text(" ", strip=True)
+                        has_timestamp = (re.search(timestamp_at_start, para_text) or 
+                                       re.search(timestamp_at_end, para_text))
+                        
+                        if has_timestamp:
+                            clean_text = re.sub(timestamp_at_start, '', para_text)
+                            clean_text = re.sub(timestamp_at_end, '', clean_text).strip()
+                            if clean_text and len(clean_text) > 5:
+                                key_points.append(clean_text)
+                        elif len(para_text) > 50:
+                            # Stop if we hit a non-timestamp paragraph with substantial content
+                            break
+                    
+                    return key_points
+        
+        # If we didn't find key points via cluster detection, return empty list
+        return key_points
+    
+    # If we found a key points heading, collect all text content between it and next major section
+    content_blocks = []
+    current = key_points_heading.find_next_sibling()
+    
+    while current:
+        # Stop at next major heading
+        if current.name in ['h2', 'h3']:
+            break
+        
+        # Extract text from various container types
+        if current.name == 'p':
+            text = current.get_text(" ", strip=True)
+            if text and not text.startswith('Read The Transcript'):
+                content_blocks.append(text)
+        elif current.name == 'li':
+            text = current.get_text(" ", strip=True)
+            if text:
+                content_blocks.append(text)
+        elif current.name in ['ul', 'ol']:
+            for li in current.find_all('li', recursive=False):
+                li_text = li.get_text(" ", strip=True)
+                if li_text:
+                    content_blocks.append(li_text)
+        elif current.name == 'div':
+            text = current.get_text(" ", strip=True)
+            if text and len(text) > 5:
+                content_blocks.append(text)
+        
+        current = current.find_next_sibling()
+    
+    # Process each content block to find lines with timestamps
+    for block in content_blocks:
+        # Split by newlines first
+        lines = block.split('\n')
+        
+        # If single line with multiple timestamps, try to split by timestamp boundaries
+        # Look for patterns like "text) (0:12:34" or "text] [0:12:34"
+        # Only split if we detect MULTIPLE timestamps (multiple [ or ( followed by time pattern)
+        if len(lines) == 1:
+            # Count timestamps in the block - look for [ or ( followed by \d:\d pattern
+            timestamp_count = len(re.findall(r'[\[\(]\d{1,2}:\d{2}', block))
+            if timestamp_count > 1:
+                # Split where text ends (with period or similar) and next timestamp begins
+                # Pattern: look for ". (" or ". [" or ") (" or "] [" before a timestamp
+                parts = re.split(r'(?<=[.!?)\]])\s+(?=[\[\(]\d{1,2}:\d{2})', block)
+                if len(parts) > 1:
+                    lines = parts
+                else:
+                    # Fallback: Split where closing bracket/paren is followed by opening bracket/paren with timestamp
+                    parts = re.split(r'([\]\)])\s*(?=[\[\(]\d{1,2}:\d{2})', block)
+                    # Reconstruct by joining pairs
+                    reconstructed = []
+                    current_line = ""
+                    for part in parts:
+                        current_line += part
+                        if part in [')', ']']:
+                            reconstructed.append(current_line)
+                            current_line = ""
+                    if current_line:
+                        reconstructed.append(current_line)
+                    lines = reconstructed if len(reconstructed) > 1 else lines
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Check if line contains timestamp at beginning or end
+            has_timestamp = (re.search(timestamp_at_start, line) or 
+                           re.search(timestamp_at_end, line))
+            
+            if has_timestamp:
+                # Remove timestamps from both ends
+                clean_text = re.sub(timestamp_at_start, '', line)
+                clean_text = re.sub(timestamp_at_end, '', clean_text).strip()
+                
+                if clean_text and len(clean_text) > 5:
+                    key_points.append(clean_text)
+    
+    return key_points
 
 
 def extract_transcript(html_content, episode_url):
@@ -218,7 +395,7 @@ def extract_transcript(html_content, episode_url):
                 except ValueError:
                     continue
         except Exception as e:
-            print(f"Warning: Could not parse date '{pub_date}': {e}")
+            handle_warning(f"Could not parse date '{pub_date}': {e}")
     
     # Try to get YouTube video title from page
     if youtube_data:
@@ -283,12 +460,12 @@ def extract_transcript(html_content, episode_url):
     
     if not transcript_found or not transcript_text:
         # Fallback 2: Look for transcript after "Key Points" section
-        # Key Points entries have timestamps like [0:58:06]
+        # Key Points entries have timestamps like [0:58:06] or (0:58)
         paragraphs = soup.find_all('p')
         last_key_points_idx = -1
         
-        # Find last paragraph with timestamp pattern
-        timestamp_pattern = r'\[\d{1,2}:\d{2}:\d{2}\]'
+        # Find last paragraph with timestamp pattern (handles [/( and with/without seconds)
+        timestamp_pattern = r'[\[\(]\d{1,2}:\d{2}(:\d{2})?[\]\)]'
         
         for idx, p in enumerate(paragraphs):
             text = p.get_text(" ", strip=True)
@@ -323,40 +500,46 @@ def extract_transcript(html_content, episode_url):
     if not transcript_text:
         return None
 
-    def _normalize_for_match(value):
-        if not value:
-            return ""
-        normalized = value
-        normalized = normalized.replace("\u2019", "'").replace("\u2018", "'")
-        normalized = normalized.replace("\u201c", '"').replace("\u201d", '"')
-        normalized = normalized.replace("\u00a0", " ")
-        normalized = re.sub(r"\s+", " ", normalized).strip()
-        return normalized
-
-    def _is_disclaimer(value):
-        normalized = _normalize_for_match(value)
-        if not normalized:
-            return False
-        return any(normalized.startswith(prefix) for prefix in DISCLAIMER_PREFIXES)
-
     def normalize_paragraph(text: str) -> str:
         if not isinstance(text, str):
             return text
         return SPEAKER_FIX_RE.sub(r"\1: ", text)
 
     transcript_text = [
-        normalize_paragraph(paragraph) for paragraph in transcript_text if not _is_disclaimer(paragraph)
+        normalize_paragraph(paragraph) for paragraph in transcript_text
     ]
     
-    result = {
-        'title': title,
-        'episode_url': episode_url,
-        'transcript': transcript_text
-    }
+    # Remove lines containing "Disclosure:" or "Disclaimer:" and all following lines
+    # Only check the last 50 lines of the transcript
+    check_start = max(0, len(transcript_text) - 50)
+    for idx in range(check_start, len(transcript_text)):
+        line = transcript_text[idx]
+        if line == 'Disclaimer:' or line == 'Disclosure:' or line.startswith('Is there an error in the transcript?'):
+            # Remove this line and all following lines
+            transcript_text = transcript_text[:idx]
+            break
+            
+    # Remove all instances of " : " from transcript text
+    transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
     
-    # Add publication date if found
+    # Extract key points
+    key_points = extract_key_points(soup)
+    
+    # Build result with fields in specific order: title, key_points, pub_date, episode_url, transcript, youtube
+    result = {}
+    
+    # Add fields in desired order
+    result['title'] = title
+    
     if formatted_date:
         result['pub_date'] = formatted_date
+    
+    result['episode_url'] = episode_url
+    
+    if key_points:
+        result['key_points'] = key_points
+    
+    result['transcript'] = transcript_text
     
     # Add YouTube data if found
     if youtube_data:
@@ -376,7 +559,7 @@ def create_filename_from_title(title, pub_date=None):
         Filename string in format: YYMMDD_cleaned_title.json or cleaned_title.json
     """
     # Remove 'Episode N:' prefix if present
-    cleaned = re.sub(r'^Epi(?:[sd]+)?o[ds]e\s+\d+:\s*', '', title, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Episode ','Ep', title)
     
     # Replace non-alphanumeric characters with underscores
     cleaned = re.sub(r'[^a-zA-Z0-9]+', '_', cleaned)
@@ -398,8 +581,8 @@ def create_filename_from_title(title, pub_date=None):
 
 
 def scrape_episode(episode_url):
-    """Scrape a single episode and save to cache."""
-    # We need to fetch first to get title and date
+    """Scrape a single episode and save to file."""
+    # Fetch episode page and extract transcript
     html = fetch_episode_page(episode_url)
     transcript_data = extract_transcript(html, episode_url)
     
@@ -409,16 +592,15 @@ def scrape_episode(episode_url):
     # Create filename from title and date
     title = transcript_data['title']
     pub_date = transcript_data.get('pub_date')
-    cache_file = os.path.join(TRANSCRIPTS_DIR, create_filename_from_title(title, pub_date))
     
-    # Check if already cached
-    if os.path.exists(cache_file):
-        # Return cached version
-        with open(cache_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    # Check if key points were not found (they are mandatory)
+    if 'key_points' not in transcript_data:
+        handle_warning(f"No key points found for '{title}' - Key points are mandatory!")
     
-    # Save to cache
-    with open(cache_file, 'w', encoding='utf-8') as f:
+    output_file = os.path.join(TRANSCRIPTS_DIR, create_filename_from_title(title, pub_date))
+    
+    # Save to file
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(transcript_data, f, ensure_ascii=False, indent=2)
     
     return transcript_data
@@ -431,7 +613,7 @@ def scrape_all_episodes(episode_urls):
         return [], []
     
     print(f"\nScraping {len(episode_urls)} episodes from Rational Reminder podcast...")
-    print(f"Results will be cached in '{TRANSCRIPTS_DIR}/' directory\n")
+    print(f"Results will be saved in '{TRANSCRIPTS_DIR}/' directory\n")
     
     successful = []
     failed_urls = []
@@ -443,7 +625,7 @@ def scrape_all_episodes(episode_urls):
             successful.append(transcript_data['title'])
         else:
             failed_urls.append(episode_url)
-            print(f"\n⚠️  Warning: Failed to extract transcript from {episode_url}")
+            handle_warning(f"Failed to extract transcript from {episode_url}")
         
         # Rate limiting - don't delay on last episode
         if episode_url != episode_urls[-1]:
@@ -462,10 +644,14 @@ def scrape_all_episodes(episode_urls):
 
 def main():
     """Main execution function."""
+    global DEBUG_MODE
     args = parse_args()
+    DEBUG_MODE = args.debug
     
     print("="*70)
     print("Rational Reminder Podcast Transcript Scraper")
+    if DEBUG_MODE:
+        print("(Debug mode enabled - will terminate on any warnings)")
     print("="*70)
     print()
     
@@ -483,7 +669,7 @@ def main():
             filename = create_filename_from_title(title, transcript_data.get('pub_date'))
             print(f"\n✓ Successfully scraped: {title}")
             print(f"  Publication date: {pub_date}")
-            print(f"  Saved to: {filename}")
+            print(f"  Saved to: {os.path.join(TRANSCRIPTS_DIR, filename)}")
             return 0
         else:
             print(f"\n✗ Failed to scrape episode from {args.url}")

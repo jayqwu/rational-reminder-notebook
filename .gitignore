@@ -43,6 +43,7 @@ Thumbs.db
 cache/
 logs/
 *.log
-transcripts/
-categorized_transcripts/
+*transcripts*/
 debug_test/
+*.md
+*.csv

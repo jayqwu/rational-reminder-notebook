@@ -1,60 +1,38 @@
 #!/usr/bin/env python3
-"""Categorize podcast transcripts and generate category-specific markdown files"""
+"""Categorize podcast transcripts and generate category-specific markdown files using semantic similarity"""
 
 import argparse
 import csv
 import json
-import math
 import os
 from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
-import yaml
+from sentence_transformers import SentenceTransformer, util
 
 TRANSCRIPTS_DIR = "transcripts"
 METRICS_FILE = "youtube_metrics.csv"
 TAXONOMY_PATH = Path("taxonomy.json")
+OUTPUT_MATCHES_CSV = Path("episode_category_matches.csv")
 
-UNCATEGORIZED_LABEL = "Uncategorized"
-MIN_SCORE = 3
-SECONDARY_MIN_SCORE = 4
-MAX_LABELS = 2
-SOFT_CAP_RATIO = 0.15
-
-def load_categories(path):
+def load_taxonomy(path):
+    """Load taxonomy from JSON file.
+    
+    Returns:
+        list: List of taxonomy entries with category, subcategory, and description.
+    """
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    if not isinstance(data, dict) or not data:
-        raise ValueError("Taxonomy must be a non-empty JSON object.")
+    if not isinstance(data, list) or not data:
+        raise ValueError("Taxonomy must be a non-empty JSON array.")
+    
+    # Validate structure
+    for entry in data:
+        if not all(key in entry for key in ['category', 'subcategory', 'description']):
+            raise ValueError("Each taxonomy entry must have 'category', 'subcategory', and 'description'.")
+    
     return data
-
-def _build_subcategory_map(taxonomy):
-    subcategories = {}
-    for category, keywords in taxonomy.items():
-        if isinstance(keywords, dict):
-            for subcategory, sub_keywords in keywords.items():
-                if not isinstance(sub_keywords, list):
-                    raise ValueError(
-                        f"Subcategory '{subcategory}' in '{category}' must be a list."
-                    )
-                label = f"{category} - {subcategory}"
-                subcategories[label] = sub_keywords
-        elif isinstance(keywords, list):
-            subcategories[category] = keywords
-        else:
-            raise ValueError(f"Category '{category}' must be a list or object.")
-    return subcategories
-
-RAW_TAXONOMY = load_categories(TAXONOMY_PATH)
-SUBCATEGORIES = _build_subcategory_map(RAW_TAXONOMY)
-
-def _normalize_transcript_text(transcript_text):
-    if isinstance(transcript_text, list):
-        return " ".join(transcript_text)
-    if transcript_text is None:
-        return ""
-    return str(transcript_text)
 
 def _normalize_transcript_paragraphs(transcript_text):
     if isinstance(transcript_text, list):
@@ -63,63 +41,159 @@ def _normalize_transcript_paragraphs(transcript_text):
         return []
     return [str(transcript_text)]
 
-def score_transcript(title, transcript_text):
-    """Score a transcript against each category based on keyword matches."""
-
-    full_text = (title + " " + _normalize_transcript_text(transcript_text)).lower()
-    scores = {subcategory: 0 for subcategory in SUBCATEGORIES}
-
-    for subcategory, keywords in SUBCATEGORIES.items():
-        for keyword in keywords:
-            scores[subcategory] += full_text.count(keyword.lower())
-
-    return scores
-
-def assign_labels(scores, category_counts, soft_cap):
-    candidates = [
-        (category, score) for category, score in scores.items() if score >= MIN_SCORE
-    ]
-
-    if not candidates:
-        return [UNCATEGORIZED_LABEL]
-
-    candidates.sort(
-        key=lambda item: (
-            item[1] - (category_counts[item[0]] / max(soft_cap, 1)),
-            item[1],
-        ),
-        reverse=True,
-    )
-
-    primary = None
-    for category, score in candidates:
-        if category_counts[category] < soft_cap:
-            primary = (category, score)
-            break
-
-    if primary is None:
-        primary = candidates[0]
-
-    labels = [primary[0]]
-    category_counts[primary[0]] += 1
-
-    if MAX_LABELS > 1:
-        for category, score in candidates:
-            if category == primary[0]:
-                continue
-            if len(labels) >= MAX_LABELS:
-                break
-            if score < SECONDARY_MIN_SCORE:
-                continue
-            if category_counts[category] < soft_cap:
-                labels.append(category)
-                category_counts[category] += 1
-
-    return labels
-
-def generate_summary(category, keywords, episodes):
-    """Generate a structured summary for a category."""
+def compute_embeddings(model, texts, show_progress=False):
+    """Compute embeddings for a list of texts.
     
+    Args:
+        model: SentenceTransformer model
+        texts: List of text strings to encode
+        show_progress: Whether to show progress bar
+    
+    Returns:
+        Tensor of embeddings
+    """
+    return model.encode(texts, convert_to_tensor=True, show_progress_bar=show_progress)
+
+def _format_metadata_block(metadata_items, heading_level=2):
+    """Format metadata as a simple markdown block (non-YAML)."""
+    heading_prefix = "#" * heading_level
+    lines = [f"{heading_prefix} Metadata\n"]
+
+    for label, value in metadata_items:
+        if value is None or value == "":
+            continue
+        if isinstance(value, list):
+            if not value:
+                continue
+            lines.append(f"{label}:\n")
+            for item in value:
+                if item:
+                    lines.append(f"- {item}\n")
+        else:
+            lines.append(f"{label}: {value}\n")
+
+    lines.append("\n")
+    return lines
+
+def create_episode_text(title, key_points, transcript=None, max_transcript_chars=5000):
+    """Create combined text representation of an episode for semantic matching.
+    
+    Args:
+        title: Episode title
+        key_points: List of key points from the episode (can be None or empty)
+        transcript: Optional full transcript (will be truncated if too long)
+        max_transcript_chars: Maximum characters to include from transcript
+    
+    Returns:
+        Combined text string
+    """
+    parts = [title] if title else []
+    
+    # Add key points if available
+    if key_points:
+        if isinstance(key_points, list):
+            # Filter out empty or None values
+            valid_points = [str(point) for point in key_points if point]
+            parts.extend(valid_points)
+        else:
+            point_str = str(key_points).strip()
+            if point_str:
+                parts.append(point_str)
+    
+    # Optionally add truncated transcript for more context
+    if transcript:
+        if isinstance(transcript, list):
+            transcript_text = " ".join(str(p) for p in transcript if p)
+        else:
+            transcript_text = str(transcript)
+        
+        if transcript_text.strip():
+            if len(transcript_text) > max_transcript_chars:
+                transcript_text = transcript_text[:max_transcript_chars]
+            parts.append(transcript_text)
+    
+    return " ".join(parts) if parts else title or ""
+
+def similarity_to_relevance(score):
+    """Convert numerical similarity score to descriptive relevance level.
+    
+    Args:
+        score: Cosine similarity score (0-1)
+    
+    Returns:
+        String describing relevance level for RAG retrieval
+    """
+    if score >= 0.6:
+        return "Very High"
+    elif score >= 0.5:
+        return "High"
+    elif score >= 0.4:
+        return "Average"
+    elif score >= 0.3:
+        return "Low"
+    else:
+        return "Very Low"
+
+def popularity_to_tier(value):
+    """Convert audience popularity percentile to a tier label."""
+    if value >= 80:
+        return "Very High"
+    elif value >= 60:
+        return "High"
+    elif value >= 40:
+        return "Average"
+    elif value >= 20:
+        return "Low"
+    else:
+        return "Very Low"
+
+def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, model):
+    """Assign a category to an episode based on semantic similarity.
+    
+    Args:
+        episode_data: Dictionary containing episode information
+        taxonomy: List of taxonomy entries
+        category_embeddings: Pre-computed embeddings for category descriptions
+        model: SentenceTransformer model
+    
+    Returns:
+        Tuple of (category_label, similarity_score, description)
+    """
+    # Create episode text representation
+    title = episode_data.get('title', '')
+    key_points = episode_data.get('key_points', [])
+    transcript = episode_data.get('transcript', [])
+    
+    episode_text = create_episode_text(title, key_points, transcript)
+    
+    # Encode episode text
+    episode_embedding = model.encode(episode_text, convert_to_tensor=True)
+    
+    # Compute cosine similarities
+    similarities = util.cos_sim(episode_embedding, category_embeddings)[0]
+    
+    # Find best match
+    best_idx = similarities.argmax().item()
+    best_score = similarities[best_idx].item()
+    
+    # Get category info
+    best_entry = taxonomy[best_idx]
+    category_label = f"{best_entry['category']} - {best_entry['subcategory']}"
+    description = best_entry['description']
+    
+    return category_label, best_score, description
+
+def generate_summary(category, description, episodes):
+    """Generate a structured summary for a category.
+    
+    Args:
+        category: Category label (e.g., "Investing - Market Efficiency")
+        description: Category description from taxonomy
+        episodes: List of episodes in this category
+    
+    Returns:
+        Formatted summary string
+    """
     # Parse category and subcategory
     if " - " in category:
         main_cat, sub_cat = category.split(" - ", 1)
@@ -135,21 +209,7 @@ def generate_summary(category, keywords, episodes):
     if len(episodes) > 1:
         overview += f". It contains {len(episodes)} podcast episodes from the Rational Reminder Podcast."
     
-    # Topic areas from keywords
-    topic_areas = []
-    if keywords:
-        # Group keywords into logical clusters (simple approach: first 5-7 keywords as main topics)
-        main_topics = keywords[:min(7, len(keywords))]
-        if len(main_topics) > 0:
-            topic_areas.append("\n**Key topics covered:**")
-            topic_areas.append("- " + ", ".join(main_topics))
-    
-    # Combine into structured summary
-    summary_parts = [overview]
-    if topic_areas:
-        summary_parts.extend(topic_areas)
-    
-    return "\n".join(summary_parts)
+    return overview
 
 def _format_published_date(value):
     if not value:
@@ -208,23 +268,42 @@ def parse_args():
 def main():
     args = parse_args()
     
+    # Load taxonomy
+    print("Loading taxonomy...")
+    taxonomy = load_taxonomy(TAXONOMY_PATH)
+    print(f"✓ Loaded {len(taxonomy)} categories\n")
+    
+    # Initialize semantic similarity model
+    print("Initializing semantic similarity model...")
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("✓ Model loaded\n")
+    
+    # Pre-compute category embeddings
+    print("Computing category embeddings...")
+    category_descriptions = [entry['description'] for entry in taxonomy]
+    category_embeddings = compute_embeddings(model, category_descriptions, show_progress=True)
+    print(f"✓ Computed embeddings for {len(taxonomy)} categories\n")
+    
+    # Create category label to description mapping
+    category_to_description = {
+        f"{entry['category']} - {entry['subcategory']}": entry['description']
+        for entry in taxonomy
+    }
+    
     # Load percentile mapping
     print(f"Loading popularity metrics from {args.metrics_file}...")
     percentile_map = load_percentile_map(args.metrics_file)
     print(f"✓ Loaded percentiles for {len(percentile_map)} videos\n")
+    
     # Collect all transcript files
     episode_files = sorted(Path(TRANSCRIPTS_DIR).glob("*.json"))
     
     print(f"Found {len(episode_files)} episode files")
-    print(f"Categorizing episodes...\n")
-
-    category_counts = defaultdict(int)
-    num_subcategories = len(SUBCATEGORIES)
-    target_size = math.ceil(len(episode_files) / num_subcategories)
-    soft_cap = math.ceil(target_size * (1 + SOFT_CAP_RATIO))
+    print(f"Categorizing episodes using semantic similarity...\n")
     
     # Dictionary to store episodes by category
     categorized_episodes = defaultdict(list)
+    episode_matches = []
     
     # Process each episode
     episodes_filtered = 0
@@ -260,20 +339,44 @@ def main():
         title = data.get("title", episode_file.stem)
         transcript = _normalize_transcript_paragraphs(data.get("transcript", []))
         episode_url = data.get("episode_url")
+        key_points = data.get("key_points", [])
 
-        scores = score_transcript(title, transcript)
-        labels = assign_labels(scores, category_counts, soft_cap)
+        # Assign category using semantic similarity
+        episode_data = {
+            'title': title,
+            'key_points': key_points,
+            'transcript': transcript
+        }
+        category_label, similarity_score, description = assign_category_by_similarity(
+            episode_data, taxonomy, category_embeddings, model
+        )
+        
+        # Convert similarity score to descriptive relevance level
+        relevance_level = similarity_to_relevance(similarity_score)
+        
         episode_record = {
             'title': title,
+            'published_date': published_date,
+            'key_points': key_points,
+            'category_relevance': relevance_level,
             'transcript': transcript,
             'episode_url': episode_url,
             'percentile': percentile if percentile is not None else -1.0,
-            'published_date': published_date,
             'youtube_url': youtube_url
         }
 
-        for label in labels:
-            categorized_episodes[label].append(episode_record)
+        categorized_episodes[category_label].append(episode_record)
+
+        if " - " in category_label:
+            matched_category, matched_subcategory = category_label.split(" - ", 1)
+        else:
+            matched_category, matched_subcategory = category_label, ""
+
+        episode_matches.append({
+            "title": title,
+            "category": matched_category,
+            "subcategory": matched_subcategory
+        })
     
     print(f"\n✓ Categorization complete")
     print(f"  Episodes included: {episodes_filtered}")
@@ -311,38 +414,40 @@ def main():
             
             markdown_content = []
             
-            # Get keywords for this category
-            keywords = SUBCATEGORIES.get(category, [])
+            # Get description for this category
+            description = category_to_description.get(category, "")
             
             # Add header first
             markdown_content.append(f"# {category}{part_info}\n\n")
             
+            # Add description as subheading
+            if description:
+                markdown_content.append(f"## Description\n{description}\n\n")
+            
             # Add structured summary
-            if category in SUBCATEGORIES:
-                summary = generate_summary(category, keywords, episode_batch)
-                markdown_content.append(f"## Summary\n{summary}\n\n")
+            summary = generate_summary(category, description, episode_batch)
+            markdown_content.append(f"## Summary\n{summary}\n\n")
             
-            # Create YAML frontmatter for category
-            frontmatter = {
-                'type': 'category',
-                'episodes_in_file': len(episode_batch),
-                'keywords': keywords,
-                'source': 'Rational Reminder Podcast',
-                'source_url': 'https://rationalreminder.ca/podcast/'
-            }
-            
+            # Create metadata block for category
+            category_metadata = [
+                ("Type", "category"),
+                ("Episodes in file", len(episode_batch)),
+                ("Description", description),
+                ("Source", "Rational Reminder Podcast"),
+                ("Source URL", "https://rationalreminder.ca/podcast/")
+            ]
+
             if num_files > 1:
-                frontmatter['total_episodes'] = len(episodes)
-                frontmatter['part'] = file_index + 1
-                frontmatter['total_parts'] = num_files
-            
+                category_metadata.extend([
+                    ("Total episodes", len(episodes)),
+                    ("Part", file_index + 1),
+                    ("Total parts", num_files)
+                ])
+
             if args.min_percentile > -1.0:
-                frontmatter['filter_percentile'] = args.min_percentile
-            
-            # Write YAML frontmatter after summary
-            markdown_content.append("---\n")
-            markdown_content.append(yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True))
-            markdown_content.append("---\n\n")
+                category_metadata.append(("Audience Popularity Filter", args.min_percentile))
+
+            markdown_content.extend(_format_metadata_block(category_metadata, heading_level=2))
             
             # Add episodes
             for episode in episode_batch:
@@ -368,16 +473,29 @@ def main():
                 if episode.get('youtube_url'):
                     episode_frontmatter['youtube_url'] = episode['youtube_url']
                 if percentile_display is not None:
-                    episode_frontmatter['percentile'] = percentile_display
+                    episode_frontmatter['audience_popularity'] = percentile_display
+                    episode_frontmatter['audience_popularity_tier'] = popularity_to_tier(percentile_display)
                 
-                # Add keywords
-                if keywords:
-                    episode_frontmatter['keywords'] = keywords
+                # Add key_points (only if non-empty) and category relevance
+                key_points_data = episode.get('key_points')
+                if key_points_data and (isinstance(key_points_data, list) and len(key_points_data) > 0):
+                    episode_frontmatter['key_points'] = key_points_data
+                if episode.get('category_relevance'):
+                    episode_frontmatter['category_relevance'] = episode['category_relevance']
                 
-                # Write episode frontmatter after heading
-                markdown_content.append("---\n")
-                markdown_content.append(yaml.dump(episode_frontmatter, default_flow_style=False, allow_unicode=True))
-                markdown_content.append("---\n\n")
+                # Write metadata block after heading
+                episode_metadata = [
+                    ("Type", episode_frontmatter.get("type")),
+                    ("Category", episode_frontmatter.get("category")),
+                    ("Published date", episode_frontmatter.get("published_date")),
+                    ("Episode URL", episode_frontmatter.get("episode_url")),
+                    ("YouTube URL", episode_frontmatter.get("youtube_url")),
+                    ("Audience Popularity", episode_frontmatter.get("audience_popularity")),
+                    ("Audience Popularity Tier", episode_frontmatter.get("audience_popularity_tier")),
+                    ("Key points", episode_frontmatter.get("key_points")),
+                    ("Category relevance", episode_frontmatter.get("category_relevance"))
+                ]
+                markdown_content.extend(_format_metadata_block(episode_metadata, heading_level=3))
                 
                 for paragraph in episode['transcript']:
                     markdown_content.append(f"{paragraph}\n\n")
@@ -400,6 +518,13 @@ def main():
         count = len(categorized_episodes[category])
         print(f"{category}: {count} episodes")
     print("="*70)
+
+    with open(OUTPUT_MATCHES_CSV, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["title", "category", "subcategory"])
+        writer.writeheader()
+        writer.writerows(episode_matches)
+
+    print(f"\n✓ Wrote episode match CSV to {OUTPUT_MATCHES_CSV}")
 
 if __name__ == "__main__":
     main()
