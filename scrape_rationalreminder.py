@@ -15,7 +15,6 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
-from pathvalidate import sanitize_filename
 
 # Configuration
 PODCAST_DIRECTORY_URL = "https://rationalreminder.ca/podcast-directory"
@@ -653,9 +652,15 @@ def create_filename_from_title(title, pub_date=None):
     cleaned = re.sub(r'^Epi(d|o|s|e){4} ', 'Ep', cleaned)
     cleaned = re.sub(r'Understanding Crypto ','UC', cleaned)
     
-    # Sanitize filename using pathvalidate, allowing common characters
-    # max_len accounts for date prefix (8 chars) and extension (5 chars) + separators (2 chars)
-    cleaned = sanitize_filename(cleaned, replacement_text='_', max_len=100)
+    # Replace non-alphanumeric characters with underscores
+    cleaned = re.sub(r'[^a-zA-Z0-9]+', '_', cleaned)
+    
+    # Remove leading/trailing underscores and collapse multiple underscores
+    cleaned = re.sub(r'_+', '_', cleaned).strip('_')
+    
+    # Limit length to avoid filesystem issues
+    if len(cleaned) > 100:
+        cleaned = cleaned[:100].rstrip('_')
     
     # Add date prefix if available
     if pub_date:

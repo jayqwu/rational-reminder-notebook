@@ -36,8 +36,8 @@ EXCLUDE_TITLES = [
 # GPU/embedding controls tuned for laptop GPUs
 USE_FP16 = True
 BATCH_SIZE = 8
-MODEL='Octen/Octen-Embedding-8B'
-# MODEL='Octen/Octen-Embedding-4B'
+# MODEL='Octen/Octen-Embedding-8B'
+MODEL='Octen/Octen-Embedding-4B'
 # MODEL='Octen/Octen-Embedding-0.6B'
 # MODEL='nomic-ai/nomic-embed-text-v1.5'
 
