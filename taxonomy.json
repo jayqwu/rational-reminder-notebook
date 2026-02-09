@@ -1,43 +1,48 @@
 [
   {
     "category": "Investing",
-    "subcategory": "Market Efficiency & Price Discovery",
-    "description": "Focuses strictly on the academic theory of the Efficient Market Hypothesis (EMH), the Grossman-Stiglitz paradox, and how information is incorporated into prices. Distinct from active manager performance."
+    "subcategory": "Market Efficiency Theory",
+    "description": "Focuses strictly on the Efficient Market Hypothesis (EMH), price discovery mechanics, and the Grossman-Stiglitz paradox. distinct from active manager performance statistics."
   },
   {
     "category": "Investing",
     "subcategory": "Active Management Performance",
-    "description": "Analyzes the track records of active fund managers, SPIVA reports, and the 'arithmetic of active management.' Focuses on the data of manager underperformance rather than market theory."
+    "description": "Analyzes the track records of active fund managers, SPIVA reports, and the 'arithmetic of active management.' Focuses on the statistical probability of beating the market."
   },
   {
     "category": "Investing",
-    "subcategory": "Estimating Expected Returns",
-    "description": "Focuses on the methodology of forecasting returns. Covers discount rates, CAPE ratios, the Gordon Growth Model, and the reliability of historical data for future predictions."
+    "subcategory": "Historical Market Data",
+    "description": "Focuses on long-run historical returns (100+ years), survivorship bias in data, and historical market crashes (1929, 2000, 2008). Distinct from predicting future returns."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Valuation & Forecasting",
+    "description": "Focuses on methodologies for estimating *future* premiums. Covers discount rates, CAPE ratios, the Gordon Growth Model, and earnings yield."
   },
   {
     "category": "Investing",
     "subcategory": "Factor Investing: Value & Size",
-    "description": "Specific deep dives into the Value (HML) and Size (SMB) premiums. Covers the historical performance and risk-based explanations specifically for small-cap and value stocks."
+    "description": "Specific deep dives into the Value (HML) and Size (SMB) premiums. Covers the historical performance and risk-based explanations for small-cap and value stocks."
   },
   {
     "category": "Investing",
     "subcategory": "Factor Investing: Profitability & Quality",
-    "description": "Focuses specifically on the Profitability (RMW) and Investment (CMA) factors. Discusses the 'quality' anomaly and cash-based vs. operating profitability."
+    "description": "Focuses on the Profitability (RMW) and Investment (CMA) factors. Discusses the 'quality' anomaly, cash-based profitability, and gross profitability."
   },
   {
     "category": "Investing",
     "subcategory": "Factor Investing: Momentum",
-    "description": "Focuses exclusively on cross-sectional Momentum (MOM) and trend following. Discusses the persistence of price trends and turnover costs associated with this specific factor."
+    "description": "Focuses exclusively on cross-sectional Momentum (MOM) and trend following. Discusses the persistence of price trends and turnover costs."
   },
   {
     "category": "Investing",
     "subcategory": "Fixed Income: Bonds & Yields",
-    "description": "Focuses on bond duration, yield curves, and interest rate risk. Covers the mechanics of bond returns and the role of fixed income in liability matching."
+    "description": "Focuses on bond duration, yield curves, and interest rate risk. Covers the mechanics of bond returns and liability matching."
   },
   {
     "category": "Investing",
     "subcategory": "Private Equity & Buyouts",
-    "description": "Analyzes private equity funds, leveraged buyouts, and the illiquidity premium. Focuses on fee structures and comparisons to public market equivalents."
+    "description": "Analyzes private equity funds, leveraged buyouts, and the illiquidity premium. Focuses on fee structures, IRR vs PME, and comparisons to public markets."
   },
   {
     "category": "Investing",
@@ -47,7 +52,7 @@
   {
     "category": "Investing",
     "subcategory": "Bitcoin as an Asset",
-    "description": "Evaluates Bitcoin specifically as a store of value or 'digital gold.' Discusses volatility, correlation with other assets, and investment thesis."
+    "description": "Evaluates Bitcoin specifically as a store of value or 'digital gold.' Discusses volatility, correlation with other assets, and the investment thesis."
   },
   {
     "category": "Investing",
@@ -56,13 +61,13 @@
   },
   {
     "category": "Investing",
-    "subcategory": "Crypto Skepticism & Risks",
-    "description": "Critical analysis of the crypto space. Covers fraud, stablecoin risks (Tether), systemic risks, and the case against crypto as money."
+    "subcategory": "Thematic & Sector ETFs",
+    "description": "Critiques of 'hot' sector funds like AI, Marijuana, or Clean Energy. Focuses on the skewness of returns and the 'big market delusion.'"
   },
   {
     "category": "Investing",
-    "subcategory": "Stock Market Concentration",
-    "description": "Analyzes the risks of the 'Magnificent Seven,' top-heavy indexes, and historical data on market concentration. Discusses if high concentration predicts lower returns."
+    "subcategory": "Covered Call & Buffer ETFs",
+    "description": "Critiques of yield-enhancing derivative products. Focuses on the 'devil's bargain' of capped upside for income (JEPI, QYLD, etc.)."
   },
   {
     "category": "Investing",
@@ -81,8 +86,13 @@
   },
   {
     "category": "Retirement Planning",
-    "subcategory": "Sequence of Returns Risk",
-    "description": "Focuses on the mathematical risk of poor returns early in decumulation. Discusses the 'retirement danger zone' and volatility drag."
+    "subcategory": "Mathematics of Sequence Risk",
+    "description": "Focuses on the mathematical problem of poor returns early in decumulation. Discusses volatility drag and the 'retirement danger zone.'"
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Retirement Risk Mitigation",
+    "description": "Focuses on specific strategies to counter sequence risk. Covers 'Bond Tents,' cash wedges, and bucketing strategies."
   },
   {
     "category": "Retirement Planning",
@@ -100,14 +110,9 @@
     "description": "Strategies specific to 'Financial Independence, Retire Early.' Covers extreme savings rates and 50+ year retirement horizons."
   },
   {
-    "category": "Retirement Planning",
-    "subcategory": "Health Care & Later Life",
-    "description": "Planning for late-life health costs, long-term care insurance, and the reality of spending patterns in old age."
-  },
-  {
     "category": "Portfolio Management",
     "subcategory": "Lifecycle Model Theory",
-    "description": "Focuses on the academic Lifecycle Investing model (Ayres/Nalebuff) regarding consumption smoothing over a lifetime. Distinct from practical asset allocation."
+    "description": "Focuses on the academic Lifecycle Investing model (Ayres/Nalebuff). Discusses consumption smoothing over a lifetime and time diversification."
   },
   {
     "category": "Portfolio Management",
@@ -141,18 +146,18 @@
   },
   {
     "category": "Portfolio Management",
-    "subcategory": "Product Pitfalls (ETF Slop)",
-    "description": "Critiques of complex products like covered call ETFs, buffer ETFs, and thematic funds. Focuses on financial engineering that hurts investors."
-  },
-  {
-    "category": "Portfolio Management",
     "subcategory": "Direct Indexing",
     "description": "The benefits and trade-offs of direct indexing vs. ETFs. Covers personalization and tax-loss harvesting at the stock level."
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Investor Biases",
-    "description": "Focuses on specific biases affecting traders: overconfidence, recency bias, and loss aversion in markets."
+    "subcategory": "Overconfidence & Trading Biases",
+    "description": "Focuses on active trading psychology. Covers overconfidence, sensation seeking, and the illusion of control."
+  },
+  {
+    "category": "Behavioral Finance",
+    "subcategory": "Loss Aversion & Fear",
+    "description": "Focuses on the psychology of market crashes and risk perception. Covers myopic loss aversion and the fear of volatility."
   },
   {
     "category": "Behavioral Finance",
@@ -176,23 +181,8 @@
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Adult Financial Literacy",
-    "description": "The impact of financial knowledge on outcomes for adults. Covers numeracy and the societal cost of illiteracy."
-  },
-  {
-    "category": "Behavioral Finance",
-    "subcategory": "Teaching Kids About Money",
-    "description": "Specific advice and research on raising financially literate children. Distinct from general adult literacy."
-  },
-  {
-    "category": "Behavioral Finance",
     "subcategory": "Goal Setting & Motivation",
     "description": "The psychology of motivation. Focuses on 'future self continuity,' intrinsic motivation, and setting effective goals."
-  },
-  {
-    "category": "Behavioral Finance",
-    "subcategory": "Psychology of High Wealth",
-    "description": "Challenges specific to high net worth families. Covers 'shirtsleeves to shirtsleeves' and sudden wealth syndrome."
   },
   {
     "category": "Making Financial Decisions",
@@ -216,13 +206,13 @@
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Risk Tolerance & Capacity",
-    "description": "The science of measuring risk tolerance. Covers psychometric testing and the difference between risk capacity and risk perception."
+    "subcategory": "Human Capital Theory",
+    "description": "Viewing your career as a financial asset. Discusses the 'bond-like' or 'equity-like' nature of different professions."
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Human Capital",
-    "description": "Viewing your career as a bond-like or equity-like asset. Discusses how career choice influences asset allocation."
+    "subcategory": "Career Strategy & Earnings",
+    "description": "General advice on increasing earnings, negotiation, and career management. Distinct from the asset-pricing view of human capital."
   },
   {
     "category": "Financial Planning",
@@ -231,8 +221,13 @@
   },
   {
     "category": "Financial Planning",
-    "subcategory": "Advisor Selection & Fees",
-    "description": "Focuses on the industry side: fee models (AUM vs Flat Fee), fiduciary standards, and how to select an advisor."
+    "subcategory": "Advisor Compensation Models",
+    "description": "Focuses on fee structures: AUM (Assets Under Management) vs. Flat Fee vs. Commission. Discusses conflicts of interest."
+  },
+  {
+    "category": "Financial Planning",
+    "subcategory": "Vetting & Hiring Advisors",
+    "description": "Practical guides on how to select a financial planner. Covers questions to ask, fiduciary standards, and credentials."
   },
   {
     "category": "Financial Planning",
