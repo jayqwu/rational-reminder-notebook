@@ -1,247 +1,252 @@
 [
   {
-    "category": "Investing",
-    "subcategory": "Market Efficiency Theory",
-    "description": "Focuses strictly on the Efficient Market Hypothesis (EMH), price discovery mechanics, and the Grossman-Stiglitz paradox. distinct from active manager performance statistics."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Active Management Performance",
-    "description": "Analyzes the track records of active fund managers, SPIVA reports, and the 'arithmetic of active management.' Focuses on the statistical probability of beating the market."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Historical Market Data",
-    "description": "Focuses on long-run historical returns (100+ years), survivorship bias in data, and historical market crashes (1929, 2000, 2008). Distinct from predicting future returns."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Asset Pricing Theory",
-    "description": "Focuses on the academic mathematical frameworks of finance. Covers the Intertemporal Capital Asset Pricing Model (ICAPM), discount rates, the joint hypothesis problem, and the theoretical drivers of expected returns (Fama, French, Merton, Cochrane)."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Long-Run Return Data",
-    "description": "Focuses on empirical historical data regarding long-term stock and bond performance. Covers survivorship bias, the 'stocks for the long run' debate, catastrophic loss probabilities, and historical global returns (Cederburg, Dimson/Marsh/Staunton)."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Systematic Valuation & Implementation",
-    "description": "Focuses on how practitioners and fund managers utilize valuation metrics to build live portfolios. Covers profitability filters, price-to-book ratios, and the mechanics of capturing premiums in real-time (Dimensional, Avantis, AQR)."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Financial Planning Assumptions",
-    "description": "Focuses on the methodology of projecting returns for retirement modeling. Covers Monte Carlo simulation accuracy, geometric vs. arithmetic returns, and setting realistic forecast assumptions for financial plans."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Factor Investing: Value & Size",
-    "description": "Specific deep dives into the Value (HML) and Size (SMB) premiums. Covers the historical performance and risk-based explanations for small-cap and value stocks."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Factor Investing: Profitability & Quality",
-    "description": "Focuses on the Profitability (RMW) and Investment (CMA) factors. Discusses the 'quality' anomaly, cash-based profitability, and gross profitability."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Factor Investing: Momentum",
-    "description": "Focuses exclusively on cross-sectional Momentum (MOM) and trend following. Discusses the persistence of price trends and turnover costs."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Fixed Income: Bonds & Yields",
-    "description": "Focuses on bond duration, yield curves, and interest rate risk. Covers the mechanics of bond returns and liability matching."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Private Equity & Buyouts",
-    "description": "Analyzes private equity funds, leveraged buyouts, and the illiquidity premium. Focuses on fee structures, IRR vs PME, and comparisons to public markets."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Bitcoin as an Asset",
-    "description": "Evaluates Bitcoin specifically as a store of value or 'digital gold.' Discusses volatility, correlation with other assets, and the investment thesis."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "DeFi & Blockchain Utility",
-    "description": "Focuses on the technological utility of Ethereum, smart contracts, NFTs, and decentralized finance protocols. Distinct from Bitcoin price speculation."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Thematic & Sector ETFs",
-    "description": "Critiques of 'hot' sector funds like AI, Marijuana, or Clean Energy. Focuses on the skewness of returns and the 'big market delusion.'"
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Covered Call & Buffer ETFs",
-    "description": "Critiques of yield-enhancing derivative products. Focuses on the 'devil's bargain' of capped upside for income (JEPI, QYLD, etc.)."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Inflation & Hedging",
-    "description": "Analyzes inflation mechanics, the Consumer Price Index (CPI), and specific assets used to hedge inflation (Gold, Commodities, TIPS)."
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "The 4% Rule & SWR History",
-    "description": "Focuses strictly on the Bengen/Trinity study, historical safe withdrawal rates, and fixed real withdrawal strategies."
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "Flexible Spending Rules",
-    "description": "Focuses on dynamic withdrawal strategies like guardrails, ratcheting, or percentage-of-portfolio methods. Distinct from fixed SWR discussions."
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "Mathematics of Sequence Risk",
-    "description": "Focuses on the mathematical problem of poor returns early in decumulation. Discusses volatility drag and the 'retirement danger zone.'"
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "Retirement Risk Mitigation",
-    "description": "Focuses on specific strategies to counter sequence risk. Covers 'Bond Tents,' cash wedges, and bucketing strategies."
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "Government Pensions (CPP/SS)",
-    "description": "Optimization of Canada Pension Plan and Social Security. Focuses on the math of deferral and longevity insurance provided by the state."
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "Annuities & Longevity Insurance",
-    "description": "The role of commercial annuities (SPIAs, DIAs) in a plan. Focuses on mortality credits and guaranteeing a floor of income."
-  },
-  {
-    "category": "Retirement Planning",
-    "subcategory": "The FIRE Movement",
-    "description": "Strategies specific to 'Financial Independence, Retire Early.' Covers extreme savings rates and 50+ year retirement horizons."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Lifecycle Model Theory",
-    "description": "Focuses on the academic Lifecycle Investing model (Ayres/Nalebuff). Discusses consumption smoothing over a lifetime and time diversification."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Investing with Leverage",
-    "description": "Focuses specifically on using margin, options, or leveraged ETFs to increase exposure. Discusses the risks and mechanics of leverage."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Asset Allocation Principles",
-    "description": "Core principles of portfolio construction (60/40, risk parity). Focuses on the strategic mix of asset classes rather than product selection."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Diversification & Home Bias",
-    "description": "The benefits of global diversification and the specific debate around Canadian/US home country bias."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Rebalancing Mechanics",
-    "description": "Mechanics of maintaining a portfolio. Covers rebalancing frequency, tolerance bands, and the 'rebalancing bonus.'"
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Asset Location Strategy",
-    "description": "Strategies for placing assets in specific accounts (RRSP vs TFSA vs Taxable) to minimize tax drag."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "ETF Structure & Evaluation",
-    "description": "How to analyze ETFs, including MERs, tracking error, and swap-based structures. Focuses on the vehicle itself."
-  },
-  {
-    "category": "Portfolio Management",
-    "subcategory": "Direct Indexing",
-    "description": "The benefits and trade-offs of direct indexing vs. ETFs. Covers personalization and tax-loss harvesting at the stock level."
+    "category": "Behavioral Finance",
+    "subcategory": "The Psychology of Happiness and Wealth",
+    "description": "This topic explores the disconnect between accumulating money and achieving life satisfaction, referencing concepts like the \"hedonic treadmill\" and \"funded contentment.\" It covers research suggesting that once basic needs are met, increased income has diminishing returns on happiness, and emphasizes the importance of aligning spending with personal values, experiences, and social connection rather than material goods or status."
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Overconfidence & Trading Biases",
-    "description": "Focuses on active trading psychology. Covers overconfidence, sensation seeking, and the illusion of control."
+    "subcategory": "Cognitive Biases in Investment Decisions",
+    "description": "This topic details specific mental errors that plague investors, such as recency bias, overconfidence, and the tendency to chase past performance. It draws on behavioral finance literature to explain why investors often make irrational choices, such as panic selling during downturns or believing they can time the market, and discusses how these biases lead to the \"behavior gap\" between investment returns and investor returns."
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Loss Aversion & Fear",
-    "description": "Focuses on the psychology of market crashes and risk perception. Covers myopic loss aversion and the fear of volatility."
+    "subcategory": "The Myth of Market Timing and \"Buying the Dip\"",
+    "description": "This topic analyzes the mathematical and behavioral flaws behind strategies like waiting for market corrections to invest cash. It references historical data showing that lump-sum investing generally outperforms dollar-cost averaging and \"buying the dip,\" primarily because markets rise more often than they fall, and investors often hesitate to deploy capital during actual periods of volatility due to fear."
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Happiness & Money",
-    "description": "The broad relationship between wealth and well-being. Covers the saturation point of wealth and 'funded contentment.'"
+    "subcategory": "Financial Literacy and Economic Outcomes",
+    "description": "This topic examines the correlation between financial literacy, numeracy, and wealth accumulation. It discusses research indicating that financially literate individuals are better equipped to understand inflation, compound interest, and risk diversification, leading to better long-term outcomes, while acknowledging that financial education alone is often insufficient without behavioral guardrails."
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "The Psychology of Regret",
-    "description": "Focuses specifically on the emotion of regret in decision making. Covers 'Die With Zero' concepts and minimizing future regret."
+    "subcategory": "Narratives vs. Evidence in Finance",
+    "description": "This topic contrasts the human desire for compelling stories—such as the rise of disruptive technologies or \"the next big thing\"—with the statistical reality of asset pricing. It warns against investing based on narratives, news headlines, or the \"this time is different\" fallacy, urging investors to rely on long-term historical data and academic evidence rather than emotional storytelling."
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Time vs. Money",
-    "description": "Focuses on time poverty, the value of buying time, and the trade-off between earning more and having more free time."
+    "subcategory": "Regret Aversion and FOMO",
+    "description": "This topic focuses on the emotional drivers of \"Fear Of Missing Out\" (FOMO) and regret, particularly regarding speculative assets like cryptocurrency or individual stock picks. It discusses how the fear of regret can lead to poor portfolio construction, such as concentration risk, and how optimizing for \"least regret\" is often a more practical behavioral strategy than optimizing for maximum mathematical return."
   },
   {
-    "category": "Behavioral Finance",
-    "subcategory": "Spending Psychology",
-    "description": "The psychology of 'tightwads' vs 'spendthrifts' and the pain of paying. Focuses on consumption habits."
+    "category": "Financial Planning",
+    "subcategory": "Life Insurance and Risk Management",
+    "description": "This topic covers the evaluation of term versus permanent life insurance, analyzing when permanent policies (whole life, universal life) make sense as an asset class versus when they are sold unnecessarily. It includes discussions on the mechanics of policy loans, the risks of lapsing policies, and the necessity of disability and long-term care insurance to protect human capital and retirement assets."
   },
   {
-    "category": "Behavioral Finance",
-    "subcategory": "Goal Setting & Motivation",
-    "description": "The psychology of motivation. Focuses on 'future self continuity,' intrinsic motivation, and setting effective goals."
+    "category": "Financial Planning",
+    "subcategory": "Tax Planning and Asset Location",
+    "description": "This topic details strategies for optimizing after-tax wealth by placing specific asset classes in the most tax-efficient accounts (RRSPs, TFSAs, IRAs, taxable accounts). It includes complex strategies such as the \"backdoor Roth,\" tax-loss harvesting to offset gains, and the nuances of the \"capital gains bump zone\" where ordinary income pushes capital gains into higher tax brackets."
+  },
+  {
+    "category": "Financial Planning",
+    "subcategory": "Government Pensions & Tax-Advantaged Strategy",
+    "description": "This subcategory integrates the optimization of government pension benefits with tax-advantaged account strategies. It covers the mechanics of claiming Social Security, CPP, and OAS, reframing delay as a form of inflation-indexed longevity insurance. Additionally, it details the strategic use of savings vehicles like RRSPs, TFSAs, IRAs, and 529 plans, analyzing contribution hierarchies, asset location, and complex tactics like 'Backdoor Roths' to maximize tax efficiency and grant utilization across the lifecycle."
+  },
+  {
+    "category": "Financial Planning",
+    "subcategory": "Debt Management and Leverage",
+    "description": "This topic analyzes the role of debt in a financial plan, distinguishing between \"good\" debt (mortgages) and \"bad\" consumer debt. It explores advanced strategies like the \"Smith Maneuver\" for tax-deductible interest, the psychological burden of debt, and the trade-offs between paying down low-interest mortgages versus investing in the market."
+  },
+  {
+    "category": "Financial Planning",
+    "subcategory": "Estate Planning and Wealth Transfer",
+    "description": "This topic addresses the logistics of transferring wealth, including the use of wills, trusts, and beneficiary designations to avoid probate and minimize taxes. It covers the \"step-up in basis\" rules for inherited assets, the implications of the SECURE Act on inherited IRAs, and strategies for intergenerational wealth transfer that consider the preparedness of heirs to handle sudden wealth."
+  },
+  {
+    "category": "Financial Planning",
+    "subcategory": "The Value of Professional Financial Advice",
+    "description": "This topic evaluates the tangible and intangible benefits of hiring a financial advisor versus DIY investing. It discusses the \"gamma\" or value-add of advice through behavioral coaching, tax planning, and withdrawal strategies, while also critiquing the conflicts of interest inherent in commission-based models and the importance of fiduciary standards."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "The Case for Low-Cost Indexing",
+    "description": "This subcategory establishes the foundational arguments for passive investing, referencing Charles Ellis's 'Loser's Game' and the zero-sum nature of market returns. It covers the historical underperformance of active managers (SPIVA reports), the impact of fees on long-term wealth, and Warren Buffett's advice on the difficulty of identifying winning managers in advance. The topic explains why the 'average' investor must underperform the market after costs and why broad-market indexing remains the rational default."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "The Arithmetic of Active Management & Manager Skill",
+    "description": "This subcategory moves beyond simple underperformance statistics to the theoretical measurement of skill and alpha. It explores the 'Arithmetic of Active Management' (Sharpe/Berk/van Binsbergen), debating whether true manager skill exists but is extracted by fees (the 'value-added' framework). It also discusses the 'Paradox of Skill'—how increasing competition among professionals makes alpha harder to find—and the migration of traditional alpha into commoditized beta factors."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Market Structure & The Impact of Passive Investing",
+    "description": "This subcategory addresses the structural risks and debates surrounding the rise of index funds, including the 'Index Fund Bubble' hypothesis. It examines arguments regarding market inelasticity, the potential degradation of price discovery, and the impact of passive ownership on corporate governance. The topic includes research on whether index flows distort asset prices, create momentum effects, or reduce the efficiency of the stock market."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Index Fund Implementation & Mechanics",
+    "description": "This subcategory focuses on the operational realities of running index funds and ETFs. It covers the nuances of portfolio construction, such as sampling versus full replication, and the trading strategies used to minimize tracking error and adverse selection costs during rebalancing. It also details the structure of 'asset allocation ETFs' (like XGRO/XBAL) and how fund providers manage liquidity and cash drag."
+  },
+  {
+    "category": "Factor Investing",
+    "subcategory": "Asset Pricing Theory & Market Efficiency",
+    "description": "This topic covers the academic foundations of factor investing, tracing the evolution from the Capital Asset Pricing Model (CAPM) to the Fama-French Three- and Five-Factor models. It explores the Efficient Market Hypothesis (EMH) and the debate over whether factor premiums (such as size and value) are compensation for systematic risk or the result of behavioral anomalies. It includes discussions on the 'joint hypothesis problem,' the random walk theory, and the mathematical underpinnings of expected returns."
+  },
+  {
+    "category": "Factor Investing",
+    "subcategory": "Factor Implementation & Strategy",
+    "description": "This topic focuses on the practical application of factor investing through 'Smart Beta' funds, systematic active management, and ETFs. It details how firms like Dimensional Fund Advisors, Avantis, and Vanguard construct portfolios to capture premiums (Value, Profitability, Size) while managing implementation costs, turnover, and diversification. It also contrasts theoretical premiums with realizable returns, discussing the trade-offs of tilting away from market-cap-weighted indices."
+  },
+  {
+    "category": "Factor Investing",
+    "subcategory": "Factor Robustness & The 'Factor Zoo'",
+    "description": "This topic addresses the reliability and persistence of factor premiums, tackling the 'replication crisis' in finance and the dangers of data mining (p-hacking). It examines specific nuances of factors like Momentum, Profitability, and Quality, asking which factors are statistically significant and investable versus those that are merely academic artifacts. It also covers the concept of skewness in stock returns and the difficulty of identifying true premiums amidst market noise."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Fixed Income and Bond Markets",
+    "description": "This topic analyzes the role of bonds in a portfolio, distinguishing between their use for income generation versus volatility reduction. It covers the mechanics of yield curves, duration risk, credit spreads, and the historical performance of bonds during inflationary periods, arguing against the notion that bonds are \"dead\" during low-yield environments."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Real Estate as an Investment",
+    "description": "This topic critically evaluates direct real estate ownership versus REITs, debunking the myth that housing is always a superior investment. It compares the long-term real returns of residential real estate to the stock market, discusses the unrecoverable costs of ownership (maintenance, taxes, interest), and analyzes the user cost of capital when deciding between renting and buying."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Cryptocurrencies and Blockchain Technology",
+    "description": "This topic provides a skeptical but thorough examination of crypto assets, distinguishing between the technological utility of blockchain and the speculative nature of Bitcoin and altcoins. It covers the economics of the crypto ecosystem, the lack of intrinsic value or expected returns in non-productive assets, and the risks of fraud, tethering, and regulatory crackdowns."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Thematic and Sector ETFs",
+    "description": "This topic critiques the rise of \"ETF slop\"—narrowly defined thematic funds (e.g., AI, marijuana, work-from-home) that often launch at the peak of a hype cycle. It explains why investing in technological revolutions often leads to poor returns due to high valuations and competition, and why broad diversification is superior to betting on specific sectors."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Private Equity and Alternative Assets",
+    "description": "This topic examines the allure of private markets, hedge funds, and private credit. It discusses the \"volatility laundering\" effect where illiquid assets appear stable due to infrequent pricing, and questions whether the net-of-fee returns for retail investors in private equity actually justify the illiquidity and complexity compared to public market equivalents."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Market History and Long-Term Returns",
+    "description": "This topic looks at financial history to contextualize current market conditions, referencing data sets going back centuries to show that equity premiums persist over the long run despite wars, inflation, and depressions. It emphasizes that while the \"equity risk premium\" is positive, it is not guaranteed over shorter timeframes, and survivorship bias in US data can mislead investors."
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Rent vs. Buy Analysis",
-    "description": "Strictly analyzes the financial trade-offs of renting versus buying a home. Covers the 5% rule and unrecoverable costs."
+    "subcategory": "Values-Based Decision Making",
+    "description": "This topic focuses on using personal values as a compass for financial choices, ensuring that money serves life goals rather than being an end in itself. It involves distinguishing between \"means objectives\" (making money) and \"strategic objectives\" (living a meaningful life), and using techniques like \"value-focused thinking\" to create better alternatives for major life choices."
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Real Estate Investing",
-    "description": "Focuses on real estate as an asset class (REITs, rental properties). Discusses cap rates and correlation with equities."
+    "subcategory": "The Rent vs. Buy Decision",
+    "description": "This topic provides a rigorous framework for deciding between homeownership and renting, moving beyond social stigma to analyze the \"5% rule\" (or similar heuristics) regarding unrecoverable costs. It factors in opportunity costs of the down payment, maintenance, property taxes, and the flexibility of renting, often concluding that renting and investing the difference is a mathematically valid path to wealth."
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Mortgages & Debt Management",
-    "description": "Strategies for managing liabilities. Covers mortgage types (fixed vs variable) and the psychological burden of debt."
+    "subcategory": "Human Capital and Career Management",
+    "description": "This topic treats an individual's earning power as a bond-like asset on their personal balance sheet. It discusses how career stability should influence portfolio risk (e.g., tenured professors can take more equity risk than commission-based salespeople) and the importance of investing in skills and education to increase lifetime earnings."
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Human Capital Theory",
-    "description": "Viewing your career as a financial asset. Discusses the 'bond-like' or 'equity-like' nature of different professions."
+    "subcategory": "The High Cost of Financial Complexity",
+    "description": "This topic examines sophisticated financial instruments—such as structured notes, market-linked GICs, and covered call funds—that often utilize opacity to obscure high fees and capped returns. It highlights how financial innovation can deceive rather than help, creating products that are too complicated and expensive for the average investor while benefiting the issuer."
   },
   {
-    "category": "Financial Planning",
-    "subcategory": "Value of Advice (Gamma)",
-    "description": "Quantifies the value added by advisors. Focuses on behavioral coaching and the intangible benefits of delegation."
+    "category": "Making Financial Decisions",
+    "subcategory": "Family and Money Dynamics",
+    "description": "This topic addresses the interpersonal aspects of finance, including managing money in relationships, deciding whether to merge finances, and teaching children about money. It covers the challenges of wealth disparity between spouses, the \"wealth 3.0\" approach to parenting, and avoiding the \"shirtsleeves to shirtsleeves\" phenomenon in intergenerational wealth."
   },
   {
-    "category": "Financial Planning",
-    "subcategory": "Advisor Compensation Models",
-    "description": "Focuses on fee structures: AUM (Assets Under Management) vs. Flat Fee vs. Commission. Discusses conflicts of interest."
+    "category": "Making Financial Decisions",
+    "subcategory": "Decision Analysis and Mental Models",
+    "description": "This topic applies concepts from decision science to finance, encouraging investors to think probabilistically rather than deterministically. It advocates for using decision journals, understanding the difference between the quality of a decision and the quality of the outcome (resulting), and recognizing how framing effects influence choices about risk and reward."
   },
   {
-    "category": "Financial Planning",
-    "subcategory": "Vetting & Hiring Advisors",
-    "description": "Practical guides on how to select a financial planner. Covers questions to ask, fiduciary standards, and credentials."
+    "category": "Portfolio Management",
+    "subcategory": "Asset Allocation and Risk Capacity",
+    "description": "This topic defines the split between stocks and bonds as the most critical determinant of portfolio performance. It discusses how to determine the appropriate asset mix based on \"risk capacity\" (ability to take loss) and \"risk tolerance\" (willingness to take loss), and challenges the traditional 60/40 model in an environment of changing interest rates and stock-bond correlations."
   },
   {
-    "category": "Financial Planning",
-    "subcategory": "Insurance Planning",
-    "description": "Risk management through insurance. Covers term vs. permanent life, disability, and critical illness policies."
+    "category": "Portfolio Management",
+    "subcategory": "Diversification & Idiosyncratic Risk",
+    "description": "This subcategory argues for broad diversification across geographies, sectors, and individual securities to eliminate uncompensated idiosyncratic risk. It details the dangers of 'home country bias' and sector concentration, explaining why holding a globally diversified portfolio is superior to betting on specific economies or industries. The topic also highlights the statistical skewness of individual stock returns—where most stocks underperform Treasury bills—demonstrating that owning the entire market is the most reliable way to capture the equity risk premium."
   },
   {
-    "category": "Financial Planning",
-    "subcategory": "Estate & Tax Planning",
-    "description": "Strategies for passing wealth and tax-efficient decumulation. Covers wills, trusts, and RMD planning."
+    "category": "Portfolio Management",
+    "subcategory": "Rebalancing Strategies",
+    "description": "This topic covers the mechanics of maintaining target asset allocations, comparing calendar-based rebalancing (e.g., annual) with threshold-based rebalancing (e.g., tolerance bands). It explains that rebalancing is primarily a risk-control mechanism rather than a return-enhancing strategy, forcing investors to sell high and buy low systematically."
   },
   {
-    "category": "Financial Planning",
-    "subcategory": "Charitable Giving",
-    "description": "Optimizing philanthropy. Covers Donor Advised Funds (DAFs) and donating appreciated securities."
+    "category": "Portfolio Management",
+    "subcategory": "Leverage and Margin",
+    "description": "This topic analyzes the use of borrowed money to amplify returns, such as investing on margin or using leveraged ETFs. It discusses \"time diversification\" (using leverage early in life), the risks of margin calls, and the volatility decay inherent in daily leveraged products, concluding that while leverage can theoretically improve outcomes, behavioral risks usually make it dangerous."
+  },
+  {
+    "category": "Portfolio Management",
+    "subcategory": "Sustainable and ESG Portfolio Construction",
+    "description": "This topic looks at integrating Environmental, Social, and Governance factors into portfolio construction. It discusses the trade-off between expressing values and expected returns (as \"sin stocks\" often have higher costs of capital and higher returns), the problem of \"greenwashing,\" and the difference between divestment and shareholder engagement."
+  },
+  {
+    "category": "Portfolio Management",
+    "subcategory": "Portfolio Implementation Efficiency",
+    "description": "This topic examines the mechanics of portfolio execution, focusing on maximizing net returns after fees, taxes, and trading costs. It evaluates the trade-offs of Direct Indexing—owning individual index components to enable granular tax-loss harvesting and personalization—versus standard ETF implementation. The topic analyzes the impact of implementation frictions such as expense ratios, bid-ask spreads, cash drag, and foreign withholding taxes, weighing whether the potential \"tax alpha\" of complex strategies justifies the added cost and tracking error compared to low-cost indexing."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Safe Withdrawal Rates (The 4% Rule)",
+    "description": "This topic critically examines the \"4% rule\" for retirement spending, discussing its origins in historical data and its limitations in a low-yield or high-valuation environment. It explores the \"sequence of returns risk\"—the danger of a market drop early in retirement—and suggests that rigid withdrawal rules are less effective than dynamic spending strategies."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Dynamic Spending Rules",
+    "description": "This topic proposes flexible alternatives to static withdrawal rates, such as variable percentage withdrawals or \"guardrails\" strategies that adjust spending based on portfolio performance. It argues that retirees can safely start with a higher initial withdrawal rate if they are willing to cut spending during bear markets and increase it during bull markets."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "The Retirement Consumption Smile",
+    "description": "This topic challenges the assumption that retirement spending increases linearly with inflation. It introduces the \"retirement consumption smile,\" showing that real spending typically declines as retirees age (the \"go-go,\" \"slow-go,\" and \"no-go\" years), with a potential uptick at the very end due to healthcare costs, suggesting that retirement funding needs may be lower than projected."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Annuities and Income Flooring",
+    "description": "This topic discusses the role of annuities in creating a guaranteed income floor to cover essential expenses. It differentiates between complex, high-fee variable annuities (often criticized) and simple single-premium immediate annuities (SPIAs) or longevity annuities (QLACs), which effectively pool mortality risk to provide higher payouts than bonds."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Tax-Efficient Decumulation",
+    "description": "This topic outlines strategies for drawing down assets from different account types (taxable, tax-deferred, tax-free) to minimize lifetime tax liability. It covers the concept of \"tax bracket filling\" via Roth conversions in low-income years and the importance of avoiding the \"tax torpedo\" related to Social Security taxation and Medicare surcharges."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Longevity Risk and Planning Horizons",
+    "description": "This topic addresses the financial risk of outliving one's assets, noting that average life expectancy underestimates the planning horizon needed for a 50% probability of success. It suggests planning for ages well beyond the average (e.g., age 95 or 100) and using tools like deferred annuities or delayed government pensions to hedge against \"super-longevity.\""
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Reverse Mortgages and Home Equity",
+    "description": "This topic views home equity as a buffer asset in retirement. It discusses how reverse mortgages can be used strategically—not just as a last resort—to provide tax-free cash flow during bear markets, thereby preserving the investment portfolio, though it also acknowledges the high costs and complexity involved."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Safety-First vs. Probability-Based Approaches",
+    "description": "This topic contrasts two schools of retirement thought: the \"probability-based\" approach (investing in markets and relying on safe withdrawal rates) versus the \"safety-first\" approach (matching essential liabilities with secure assets like pensions and annuities). It advocates for a hybrid approach that secures needs while investing for wants."
+  },
+  {
+    "category": "Retirement Planning",
+    "subcategory": "Retirement Transition and Identity",
+    "description": "This topic explores the non-financial aspects of retiring, such as the loss of work identity and social structure. It emphasizes that a successful retirement requires \"retiring to\" something (purpose, hobbies, volunteering) rather than just \"retiring from\" work, and warns against the depression and aimlessness that can accompany a lack of structure."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Lifecycle Asset Allocation Theory",
+    "description": "This topic explores the academic frameworks for how investment strategy should evolve over a lifetime. It moves beyond simple \"age-based\" rules to discuss Human Capital, the Intertemporal Capital Asset Pricing Model (ICAPM), and data challenging the status quo of reducing equity exposure in retirement. It examines whether stocks truly become safer over long horizons and how to integrate non-portfolio assets (like social security or future earnings) into the asset mix."
+  },
+  {
+    "category": "Retirement Modeling",
+    "subcategory": "Retirement Projection Methodologies & Assumptions",
+    "description": "This topic focuses on the \"engine\" of financial planning: how we forecast the future. It critically evaluates Monte Carlo simulations, debating whether they overstate or understate tail risk compared to historical regimes. It also covers alternative modeling approaches—such as engineering-style \"sensitivity analysis\" and \"trade-off analysis\"—and emphasizes that the quality of a plan is heavily dependent on the validity of its input assumptions (inflation, returns, longevity) rather than just the sophistication of the math."
+  },
+  {
+    "category": "Retirement Modeling",
+    "subcategory": "Dynamic Planning & Risk Communication",
+    "description": "This topic shifts the focus from \"predicting the future\" to \"managing the journey.\" It advocates for replacing the binary \"success/failure\" framing of Monte Carlo with concepts like \"probability of adjustment,\" \"over- vs. under-spending,\" and \"funded contentment.\" It draws on lessons from astronauts and behavioral experts to discuss how to prepare for uncertainty, communicate risk effectively, and create plans that are robust enough to handle changing life circumstances."
+  },
+  {
+    "category": "Retirement Modeling",
+    "subcategory": "Longevity Risk & Consumption Modeling",
+    "description": "This topic specifically addresses the liability side of the retirement equation: how long the money needs to last and how it will be spent. It covers the \"retirement equation\" regarding biological vs. chronological age, the role of annuities in hedging longevity risk, and research on flexible spending liabilities. It also includes the modeling of guaranteed income floors like Social Security to reduce the reliance on portfolio returns."
   }
 ]
