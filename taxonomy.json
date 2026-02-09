@@ -1,9 +1,41 @@
 [
   {
     "category": "Investing",
-    "subcategory": "Bubbles and Crashes: Dot-com, Housing, and Mania Case Studies",
-    "description": "Episodes and articles focused on specific historical bubbles and crash dynamics (dot-com, housing booms, crypto manias) and what actually happened ex-post. Emphasizes mechanisms (capital flows, narratives, issuance) rather than generic cautions about “bubbles”."
+    "subcategory": "Bubbles and Crashes: Tech and Innovation Boom-Bust Cycles",
+    "description": "Case studies of tech-led boom-bust periods (e.g., dot-com analogs, innovation/AI enthusiasm) and how narratives, issuance, and valuations interact. Best for content centered on innovation sectors and technology-driven manias rather than housing or macro-led crises."
   },
+  {
+    "category": "Investing",
+    "subcategory": "Bubbles and Crashes: Housing, Real Estate, and Credit Cycle Episodes",
+    "description": "Boom-bust dynamics rooted in housing markets, leverage, and credit conditions, including bubble diagnostics and aftermath. Use for content that treats real estate as both a market and a macro/credit transmission mechanism."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Bubbles and Crashes: Crisis Narratives and Investor Lessons from Major Drawdowns",
+    "description": "Content that uses major drawdowns (financial crises, recessions, sharp bear markets) to extract durable investing lessons. Focuses on what breaks in portfolios and behavior during crises rather than diagnosing one asset class."
+  },
+
+  {
+    "category": "Investing",
+    "subcategory": "Equity Factors: Value and Valuation Spreads (Theory, Evidence, Patience)",
+    "description": "Value factor definitions, measurement choices (e.g., price-to-book vs alternatives), valuation spreads, and why value can underperform for long stretches. Use for discussions about whether value is 'dead', timing temptations, and staying the course."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Equity Factors: Size, Small-Cap Value, and Capacity Constraints",
+    "description": "Small-stock premiums, small-cap value implementation, and why capacity, liquidity, and trading costs matter. Includes debates about where size works, why it may disappear in some markets, and how concentrated small-cap strategies behave."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Equity Factors: Profitability, Quality, Investment, and Intangibles",
+    "description": "Profitability and related quality/investment signals, including how accounting choices and intangibles affect metrics and expected returns. Best for content focused on Novy-Marx style profitability, quality confusion, and modern firm balance sheets."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Equity Factors: Momentum, Reversals, and Trading Frictions",
+    "description": "Momentum and short-term reversal effects, why they may exist, and what makes them hard to capture after trading costs. Includes implementation details like turnover, rebalancing frequency, and when momentum behaves differently in crises."
+  },
+
   {
     "category": "Investing",
     "subcategory": "Narrative Investing and Story-Driven Return Expectations",
@@ -31,6 +63,94 @@
   },
 
   {
+    "category": "Investing",
+    "subcategory": "Efficient Markets (EMH) and Market Efficiency Tests",
+    "description": "Evidence and intuition behind the Efficient Market Hypothesis (weak, semi-strong, strong forms) and what market efficiency does and does not claim. Includes common myths, limits of tests, and why beating the market is hard even for experts."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Index Funds vs Active Management: Performance, Skill, and Benchmarks",
+    "description": "Why most active strategies underperform after costs and how to interpret performance versus appropriate benchmarks. Includes persistence, benchmarking choices, and why relative performance can be predictable even when absolute outcomes are uncertain."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Index Funds vs Active Management: Fees, Incentives, and Industry Structure",
+    "description": "How fees, distribution incentives, and product marketing shape the active/passive landscape and investor outcomes. Best for content emphasizing conflicts, compensation, and structural reasons the average dollar earns less than market returns."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Index Funds vs Active Management: Misconceptions and Investor Decision Rules",
+    "description": "Common mistaken beliefs about indexing and active management, including when index funds are not equal and when active can be reasonable. Use for beginner-misconception content and practical heuristics for choosing implementation."
+  },
+
+  {
+    "category": "Investing",
+    "subcategory": "ETF Mechanics, Index Construction, and Implementation",
+    "description": "How ETFs and index funds actually work: creation/redemption, authorized participants, tracking error, index inclusion effects, and trading/execution. Focuses on the operational choices that make 'passive' investing non-trivial."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Indexing Externalities: Inelastic Markets, Rebalancing Costs, and Price Effects",
+    "description": "Whether indexing changes price discovery through inelastic demand, inclusion effects, and rebalancing costs. Includes evidence, measurement challenges, and what these effects imply (or don’t imply) for long-term investors."
+  },
+
+  {
+    "category": "Investing",
+    "subcategory": "Asset Pricing Models: CAPM, ICAPM, and Multi-Factor Models",
+    "description": "Core pricing frameworks for relating risk to expected return, including CAPM and intertemporal models that incorporate changing investment opportunities. Includes how these models shape portfolio choice and interpretation of anomalies."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Expected Returns Estimation and Valuation-Based Forecasting",
+    "description": "Methods for estimating expected returns using historical data, market-implied models, and valuation ratios like CAPE. Focuses on uncertainty, horizon effects, and why expected returns inputs are central (and dangerous) in planning."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Long-Run Stock Return Drivers and Skewness",
+    "description": "Where stock returns come from (cash flows and discount rates) and why outcomes are dominated by a small set of big winners. Emphasizes skewness, dispersion, and why diversification matters for capturing wealth creation."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Fixed Income Fundamentals: Duration, Term Premium, and Inflation",
+    "description": "How bond prices respond to interest-rate changes, what duration really measures, and how inflation affects real bond outcomes. Includes bond return decomposition and how to think about bonds as risk management rather than return engines."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Yield Curve, Forward Rates, and Bond Expected Returns",
+    "description": "Using yield curves and forward rates to form expectations about bond returns, term premiums, and reinvestment effects. Includes limits of prediction and how institutions incorporate these signals without market timing."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Credit Spreads, Default Risk, and 'Credit Premium' Claims",
+    "description": "How credit risk is priced, what spreads do (and do not) predict about default losses, and implementation issues in credit products. Focuses on why credit can look attractive but may disappoint after costs and cycles."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Gold and Inflation Hedging",
+    "description": "Evidence on gold as an inflation hedge and diversifier, including long historical comparisons and regime-dependent behavior. Focuses on tradeoffs versus bonds, stocks, and other inflation-sensitive exposures."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Crypto and DeFi: Use Cases, Economics, and Risks",
+    "description": "What blockchains solve (and don’t), incentives and intermediaries in crypto markets, and practical risks like centralization, fraud, and regulation. Includes debates on store-of-value claims and whether crypto improves financial systems."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Private Equity and Private Markets: Access, Fees, and Valuations",
+    "description": "How private equity differs from public markets, including illiquidity, appraisal smoothing, vintage effects, and fee layers. Covers why institutional results may not translate to retail investors and how to benchmark fairly."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Private Credit and Direct Lending",
+    "description": "Risks and return claims in private credit: illiquidity, credit underwriting, valuation opacity, gating, and fee structures. Includes how private credit is often compared incorrectly to public markets and what due diligence must cover."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Factor Replication, Data Mining, and the 'Factor Zoo'",
+    "description": "How academic anomalies can be false discoveries due to multiple testing, publication bias, and in-sample overfitting. Covers replication crisis topics, out-of-sample decay, and how to judge whether a factor is investable."
+  },
+
+  {
     "category": "Behavioral finance",
     "subcategory": "Panic Selling and Crash Behavior: Triggers, Timing, and Mitigations",
     "description": "Empirical and practical discussion of when investors sell in drawdowns, what triggers panic, and how timing damages outcomes. Includes interventions like automation, constraints, and advisor coaching aimed at preventing forced errors."
@@ -54,6 +174,36 @@
     "category": "Behavioral finance",
     "subcategory": "Behavior Gaps in Retirement: Spending Rigidity and Underspending",
     "description": "Behavioral explanations for why retirees often spend less than plans allow and resist drawing down portfolios. Includes fear of uncertainty, mental accounting, and how framing and income floors influence comfort with spending."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Cognitive Biases in Markets: Overconfidence, Framing, Miscalibration",
+    "description": "Common cognitive errors that distort decisions under uncertainty, including overconfidence and miscalibration of probabilities. Covers how framing changes choices and why process discipline matters more than prediction."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Regret Aversion, FOMO, and 'Least Regret' Portfolio Choices",
+    "description": "How regret shapes portfolio choices, benchmark fixation, and temptation to chase speculative assets. Includes regret-optimized thinking and practical compromises (like split hedging decisions) to improve adherence."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Happiness, Wellbeing, and Money: PERMA and Funded Contentment",
+    "description": "Evidence on how money relates to happiness, including hedonic adaptation, time use, and meaning. Covers frameworks like PERMA and 'funded contentment' for aligning financial choices with a good life."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Spending Psychology: Hedonic Treadmill and Joy per Dollar",
+    "description": "How consumption, comparison, and lifestyle creep affect satisfaction and saving outcomes. Focuses on designing spending to maximize wellbeing, reducing regret, and avoiding compulsive or status-driven purchases."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Addiction, Dopamine, and Speculation",
+    "description": "How dopamine-driven reward loops can lead to gambling-like investing behavior and compulsive consumption. Includes environmental triggers, moderation challenges, and strategies to support long-term decision quality."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Financial Literacy, Numeracy, and Household Mistakes",
+    "description": "What financial literacy predicts, how it is measured, and why numeracy and inflation understanding matter. Covers common household errors and how education, defaults, and advice can improve outcomes."
   },
 
   {
@@ -81,91 +231,40 @@
     "subcategory": "Direct Indexing Operations: Trading, Rebalancing, and Tracking Error Control",
     "description": "Practical mechanics of running direct-index portfolios: rebalancing rules, tax-lot selection, trading costs, and error relative to benchmark. Use for implementation-heavy discussions rather than conceptual ‘why direct indexing’ content."
   },
-
   {
-    "category": "Investing",
-    "subcategory": "Efficient Markets (EMH) and Market Efficiency Tests",
-    "description": "Evidence and intuition behind the Efficient Market Hypothesis (weak, semi-strong, strong forms) and what market efficiency does and does not claim. Includes common myths, limits of tests, and why beating the market is hard even for experts."
+    "category": "Portfolio management",
+    "subcategory": "Asset Allocation Design: Risk Tolerance vs Risk Capacity",
+    "description": "Choosing stock/bond mix using both behavioral willingness and financial ability to take risk, treated as separate dimensions. Includes common pitfalls of one-dimensional questionnaires and aligning goals to feasible risk."
   },
   {
-    "category": "Investing",
-    "subcategory": "Index Funds vs Active Management (Arithmetic of Active)",
-    "description": "Why active management is a zero-sum game before fees and negative-sum after fees, plus what fund performance can and cannot reveal about skill. Covers benchmarking, persistence, and the practical implications for investor behavior and expected outcomes."
+    "category": "Portfolio management",
+    "subcategory": "Diversification: Global, Sector, and Stock Concentration Risk",
+    "description": "Why concentration in individual stocks or home-country exposure increases tail risk without raising expected return. Covers the number of holdings needed for meaningful diversification and the practical barriers to diversifying winners."
   },
   {
-    "category": "Investing",
-    "subcategory": "Asset Pricing Models: CAPM, ICAPM, and Multi-Factor Models",
-    "description": "Core pricing frameworks for relating risk to expected return, including CAPM and intertemporal models that incorporate changing investment opportunities. Includes how these models shape portfolio choice and interpretation of anomalies."
+    "category": "Portfolio management",
+    "subcategory": "Rebalancing: Frequency, Bands, and Real Tradeoffs",
+    "description": "What rebalancing accomplishes (risk control, behavioral discipline) and when it can reduce returns due to selling winners. Covers time-based versus tolerance-band rebalancing and transaction-cost-aware implementation."
   },
   {
-    "category": "Investing",
-    "subcategory": "Equity Factor Investing: Value, Size, Profitability, Momentum",
-    "description": "What equity factors are, why they may earn premiums, and how investors should think about combining and sizing factor tilts. Includes tracking error, implementation frictions, and the behavioral challenge of sticking with factor exposures."
+    "category": "Portfolio management",
+    "subcategory": "Costs: Fees, Trading Frictions, and Hidden Implementation Drag",
+    "description": "How explicit and implicit costs (MERs, spreads, turnover, cash drag, tracking error) compound and erode outcomes. Focuses on net returns as the true measure and why small cost differences matter over decades."
   },
   {
-    "category": "Investing",
-    "subcategory": "Factor Replication, Data Mining, and the 'Factor Zoo'",
-    "description": "How academic anomalies can be false discoveries due to multiple testing, publication bias, and in-sample overfitting. Covers replication crisis topics, out-of-sample decay, and how to judge whether a factor is investable."
+    "category": "Portfolio management",
+    "subcategory": "Tax Loss Harvesting and Wash Sale Discipline",
+    "description": "Capturing capital losses while maintaining exposure, including process design, replacement securities, and wash sale constraints. Emphasizes when harvesting adds value and how to scale it without creating compliance mistakes."
   },
   {
-    "category": "Investing",
-    "subcategory": "Expected Returns Estimation and Valuation-Based Forecasting",
-    "description": "Methods for estimating expected returns using historical data, market-implied models, and valuation ratios like CAPE. Focuses on uncertainty, horizon effects, and why expected returns inputs are central (and dangerous) in planning."
+    "category": "Portfolio management",
+    "subcategory": "Asset Location and After-Tax Portfolio Framing",
+    "description": "How account type (taxable vs registered) interacts with asset returns, turnover, and time horizon to change optimal placement. Includes why after-tax asset allocation can differ from pre-tax and why optimization may have limited payoff."
   },
   {
-    "category": "Investing",
-    "subcategory": "Long-Run Stock Return Drivers and Skewness",
-    "description": "Where stock returns come from (cash flows and discount rates) and why outcomes are dominated by a small set of big winners. Emphasizes skewness, dispersion, and why diversification matters for capturing wealth creation."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "ETF Mechanics, Index Construction, and Implementation",
-    "description": "How ETFs and index funds actually work: creation/redemption, authorized participants, tracking error, index inclusion effects, and trading/execution. Focuses on the operational choices that make 'passive' investing non-trivial."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Indexing Externalities: Inelastic Markets and Price Impact",
-    "description": "Research and debate on whether rising index ownership changes price discovery, valuations, and market elasticity. Includes frameworks like Grossman-Stiglitz and practical implications for ordinary investors."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Fixed Income Fundamentals: Duration, Term Premium, and Inflation",
-    "description": "How bond prices respond to interest-rate changes, what duration really measures, and how inflation affects real bond outcomes. Includes bond return decomposition and how to think about bonds as risk management rather than return engines."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Yield Curve, Forward Rates, and Bond Expected Returns",
-    "description": "Using yield curves and forward rates to form expectations about bond returns, term premiums, and reinvestment effects. Includes limits of prediction and how institutions incorporate these signals without market timing."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Credit Spreads, Default Risk, and 'Credit Premium' Claims",
-    "description": "How credit risk is priced, what spreads do (and do not) predict about default losses, and implementation issues in credit products. Focuses on why credit can look attractive but may disappoint after costs and cycles."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Alternatives: Hedge Funds, Alternative Risk Premia, Trend",
-    "description": "What hedge funds and alternative risk premia aim to deliver, why fees and capacity matter, and how to evaluate whether returns are true alpha or repackaged beta. Includes trend-following as a contested diversifier."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Private Equity and Private Markets: Access, Fees, and Valuations",
-    "description": "How private equity differs from public markets, including illiquidity, appraisal smoothing, vintage effects, and fee layers. Covers why institutional results may not translate to retail investors and how to benchmark fairly."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Private Credit and Direct Lending",
-    "description": "Risks and return claims in private credit: illiquidity, credit underwriting, valuation opacity, gating, and fee structures. Includes how private credit is often compared incorrectly to public markets and what due diligence must cover."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Gold and Inflation Hedging",
-    "description": "Evidence on gold as an inflation hedge and diversifier, including long historical comparisons and regime-dependent behavior. Focuses on tradeoffs versus bonds, stocks, and other inflation-sensitive exposures."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Crypto and DeFi: Use Cases, Economics, and Risks",
-    "description": "What blockchains solve (and don’t), incentives and intermediaries in crypto markets, and practical risks like centralization, fraud, and regulation. Includes debates on store-of-value claims and whether crypto improves financial systems."
+    "category": "Portfolio management",
+    "subcategory": "Account Priority and Contribution Ordering (Tax Shelters)",
+    "description": "Frameworks for deciding which accounts to fund first based on tax treatment, contribution limits, and household goals. Includes coordination across multiple vehicles and tradeoffs between flexibility and tax efficiency."
   },
 
   {
@@ -212,73 +311,6 @@
     "category": "Retirement planning",
     "subcategory": "Retirement Planning Assumptions and Model Risk",
     "description": "How assumptions (returns, inflation, longevity, spending) drive planning outputs and why all plans are wrong but still useful. Includes sensitivity analysis, updating processes, and communicating uncertainty responsibly."
-  },
-
-  {
-    "category": "Portfolio management",
-    "subcategory": "Asset Allocation Design: Risk Tolerance vs Risk Capacity",
-    "description": "Choosing stock/bond mix using both behavioral willingness and financial ability to take risk, treated as separate dimensions. Includes common pitfalls of one-dimensional questionnaires and aligning goals to feasible risk."
-  },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Diversification: Global, Sector, and Stock Concentration Risk",
-    "description": "Why concentration in individual stocks or home-country exposure increases tail risk without raising expected return. Covers the number of holdings needed for meaningful diversification and the practical barriers to diversifying winners."
-  },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Rebalancing: Frequency, Bands, and Real Tradeoffs",
-    "description": "What rebalancing accomplishes (risk control, behavioral discipline) and when it can reduce returns due to selling winners. Covers time-based versus tolerance-band rebalancing and transaction-cost-aware implementation."
-  },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Costs: Fees, Trading Frictions, and Hidden Implementation Drag",
-    "description": "How explicit and implicit costs (MERs, spreads, turnover, cash drag, tracking error) compound and erode outcomes. Focuses on net returns as the true measure and why small cost differences matter over decades."
-  },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Tax Loss Harvesting and Wash Sale Discipline",
-    "description": "Capturing capital losses while maintaining exposure, including process design, replacement securities, and wash sale constraints. Emphasizes when harvesting adds value and how to scale it without creating compliance mistakes."
-  },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Asset Location and After-Tax Portfolio Framing",
-    "description": "How account type (taxable vs registered) interacts with asset returns, turnover, and time horizon to change optimal placement. Includes why after-tax asset allocation can differ from pre-tax and why optimization may have limited payoff."
-  },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Account Priority and Contribution Ordering (Tax Shelters)",
-    "description": "Frameworks for deciding which accounts to fund first based on tax treatment, contribution limits, and household goals. Includes coordination across multiple vehicles and tradeoffs between flexibility and tax efficiency."
-  },
-
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Cognitive Biases in Markets: Overconfidence, Framing, Miscalibration",
-    "description": "Common cognitive errors that distort decisions under uncertainty, including overconfidence and miscalibration of probabilities. Covers how framing changes choices and why process discipline matters more than prediction."
-  },
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Regret Aversion, FOMO, and 'Least Regret' Portfolio Choices",
-    "description": "How regret shapes portfolio choices, benchmark fixation, and temptation to chase speculative assets. Includes regret-optimized thinking and practical compromises (like split hedging decisions) to improve adherence."
-  },
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Happiness, Wellbeing, and Money: PERMA and Funded Contentment",
-    "description": "Evidence on how money relates to happiness, including hedonic adaptation, time use, and meaning. Covers frameworks like PERMA and 'funded contentment' for aligning financial choices with a good life."
-  },
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Spending Psychology: Hedonic Treadmill and Joy per Dollar",
-    "description": "How consumption, comparison, and lifestyle creep affect satisfaction and saving outcomes. Focuses on designing spending to maximize wellbeing, reducing regret, and avoiding compulsive or status-driven purchases."
-  },
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Addiction, Dopamine, and Speculation",
-    "description": "How dopamine-driven reward loops can lead to gambling-like investing behavior and compulsive consumption. Includes environmental triggers, moderation challenges, and strategies to support long-term decision quality."
-  },
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Financial Literacy, Numeracy, and Household Mistakes",
-    "description": "What financial literacy predicts, how it is measured, and why numeracy and inflation understanding matter. Covers common household errors and how education, defaults, and advice can improve outcomes."
   },
 
   {
@@ -339,13 +371,13 @@
   },
   {
     "category": "Financial planning",
-    "subcategory": "Roth and IRA Tactics: Backdoor Roth, Pro-Rata, 5-Year Rules",
-    "description": "Rules and best practices for Roth contributions and conversions, including aggregation/pro-rata issues and timing constraints. Covers step transaction doctrine risk, basis isolation strategies, and the two distinct 5-year rules."
+    "subcategory": "Tax Bracket Interactions: Capital Gains Bump Zone and NIIT",
+    "description": "How ordinary income can crowd out favorable capital gains brackets and trigger higher effective marginal rates. Includes Social Security taxation interactions, Medicare surcharges, and planning around stacked income."
   },
   {
     "category": "Financial planning",
-    "subcategory": "Tax Bracket Interactions: Capital Gains Bump Zone and NIIT",
-    "description": "How ordinary income can crowd out favorable capital gains brackets and trigger higher effective marginal rates. Includes Social Security taxation interactions, Medicare surcharges, and planning around stacked income."
+    "subcategory": "Roth and IRA Tactics: Backdoor Roth, Pro-Rata, 5-Year Rules",
+    "description": "Rules and best practices for Roth contributions and conversions, including aggregation/pro-rata issues and timing constraints. Covers step transaction doctrine risk, basis isolation strategies, and the two distinct 5-year rules."
   },
   {
     "category": "Financial planning",
@@ -356,5 +388,26 @@
     "category": "Financial planning",
     "subcategory": "Bad Advice, Finfluencers, and Product-Driven Sales Practices",
     "description": "How incentives and entertainment media shape misleading financial narratives, from stock picking to yield products. Includes red flags, common persuasion tactics, and how to filter high-quality information from noise."
+  },
+
+  {
+    "category": "Portfolio management",
+    "subcategory": "Direct Indexing for Tax Management: Gains Harvesting and Bracket Arbitrage",
+    "description": "Using direct indexing to harvest gains intentionally (including 0% capital gains windows) and manage embedded gains over time. Best fit for content about bracket-aware selling and capital-gains budgeting strategies."
+  },
+  {
+    "category": "Portfolio management",
+    "subcategory": "Rebalancing: Frequency, Bands, and Real Tradeoffs",
+    "description": "What rebalancing accomplishes (risk control, behavioral discipline) and when it can reduce returns due to selling winners. Covers time-based versus tolerance-band rebalancing and transaction-cost-aware implementation."
+  },
+  {
+    "category": "Portfolio management",
+    "subcategory": "Tax Loss Harvesting and Wash Sale Discipline",
+    "description": "Capturing capital losses while maintaining exposure, including process design, replacement securities, and wash sale constraints. Emphasizes when harvesting adds value and how to scale it without creating compliance mistakes."
+  },
+  {
+    "category": "Making financial decisions",
+    "subcategory": "Monte Carlo vs Backtesting and Planning Tool Pitfalls",
+    "description": "How projections differ between historical backtests and Monte Carlo simulation, including mean reversion, tails, and model error. Focuses on interpreting success probabilities, magnitude of failure, and model-driven overconfidence."
   }
 ]
