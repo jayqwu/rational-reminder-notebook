@@ -22,14 +22,14 @@ TRANSCRIPTS_DIR = "output/rational_reminder"
 FAILED_URLS_FILE = "output/failed_rr.json"
 DELAY_BETWEEN_REQUESTS = 0.5  # seconds
 
-DISCLAIMER_PREFIXES = [
+OUTRO_PREFIXES = [
+    "[AFTER SHOW]",
     "Disclosure:",
+    "Disclaimer:",
+    "Policies and Disclaimer",
     "Portfolio management and brokerage services in Canada are offered exclusively by PWL Capital",
+    "Announcer: Portfolio management and brokerage services in Canada are offered exclusively by PWL Capital Inc.",
     "Is there an error in the transcript? Let us know! Email us at info@rationalreminder.ca.",
-    "Be sure to add the episode number for reference",
-    "Nothing herein constitutes an offer or solicitation to buy or sell any security.",
-    "The information provided is for educational purposes only and should not be considered financial advice.",
-
 ]
 
 SPEAKER_FIX_RE = re.compile(r"^([A-Z][A-Za-z .'-]+):(?=\S)")
@@ -192,7 +192,6 @@ def extract_summary(soup):
     # This handles episodes without explicit "Key Points" heading
     if not summary_heading:
         paragraphs = soup.find_all('p')
-        timestamp_pattern = r'[\[\(]?\d{1,2}:\d{2}(:\d{2})?(\.\d+)?[\]\)]?'
         
         # Find sequences of paragraphs that start with timestamps
         for i, p in enumerate(paragraphs):
@@ -342,6 +341,77 @@ def extract_summary(soup):
     
     return summary
 
+def clean_transcript(transcript_text):
+
+    def normalize_paragraph(text: str) -> str:
+        if not isinstance(text, str):
+            return text
+        return SPEAKER_FIX_RE.sub(r"\1: ", text)
+
+    transcript_text = [
+        normalize_paragraph(paragraph) for paragraph in transcript_text
+    ]
+
+    def trim_transcript_by_marker(paragraphs, marker):
+        marker_positions = [
+            idx for idx, paragraph in enumerate(paragraphs)
+            if isinstance(paragraph, str) and paragraph.strip() == marker
+        ]
+        if not marker_positions:
+            return paragraphs
+        if len(marker_positions) == 1:
+            return paragraphs[marker_positions[0] + 1:]
+        first_idx = marker_positions[0]
+        last_idx = marker_positions[-1]
+        return paragraphs[first_idx + 1:last_idx]
+    
+    # Trim transcript text by known markers to remove intro and outro content
+    transcript_text = trim_transcript_by_marker(transcript_text, "***")
+    transcript_text = trim_transcript_by_marker(transcript_text, "[EPISODE]")
+    transcript_text = trim_transcript_by_marker(transcript_text, "[INTERVIEW]")
+
+    # Remove lines ending with "welcome to the Rational Reminder Podcast." and all preceding lines
+    # Only check lines 5 to 100 of the transcript
+    check_start = min(5, len(transcript_text))
+    check_end = min(100, len(transcript_text))
+    for idx in range(check_start, check_end):
+        line = transcript_text[idx]
+        if isinstance(line, str) and re.search(r'welcome[^(\.|\?|!)]+the rational reminder podcast(\.|\?|!)$', line, re.IGNORECASE):
+            # Remove this line and all preceding lines
+            transcript_text = transcript_text[idx + 1:]
+            break
+
+    # Remove lines containing "Disclosure:" or "Disclaimer:" and all following lines
+    # Only check the last 50 lines of the transcript
+    check_start = max(0, len(transcript_text) - 50)
+    for idx in range(check_start, len(transcript_text)):
+        line = transcript_text[idx]
+        if any(phrase in line for phrase in OUTRO_PREFIXES) or line.startswith('Is there an error in the transcript?'):
+            # Remove this line and all following lines
+            transcript_text = transcript_text[:idx]
+            break
+
+    # Remove lines ending with "How do you define success in your life?" and all following lines
+    check_start = max(0, len(transcript_text) - 50)
+    for idx in range(check_start, len(transcript_text)):
+        line = transcript_text[idx]
+        if line.lower().endswith('how do you define success in your life?'):
+            # Remove this line and all following lines
+            transcript_text = transcript_text[:idx]
+            break
+            
+    # Remove all instances of " : " from transcript text
+    transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
+    # Remove lines that are exactly "***"
+    transcript_text = [paragraph for paragraph in transcript_text if paragraph.strip() != "***"]
+    # Remove all instances of " : " from transcript text
+    transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
+    # Remove lines that are exactly "***"
+    transcript_text = [paragraph for paragraph in transcript_text if paragraph.strip() != "***"]
+    # Normalize [inaudible ...] to just [inaudible]
+    transcript_text = [re.sub(r'\[inaudible[^\]]*\]', '[inaudible]', paragraph) for paragraph in transcript_text]
+
+    return transcript_text
 
 def extract_transcript(html_content, episode_url):
     """Extract transcript text, metadata, and YouTube info from episode HTML."""
@@ -447,9 +517,7 @@ def extract_transcript(html_content, episode_url):
             # Get all content after this heading until next major section
             current = heading.find_next_sibling()
             while current:
-                if current.name in['h2', 'h3'] and current != heading:
-                    break
-                if current.name == 'p':
+                if current.name == 'p' or current.get_text() == "***":
                     text = current.get_text(" ", strip=True)
                     if text:
                         transcript_text.append(text)
@@ -532,28 +600,8 @@ def extract_transcript(html_content, episode_url):
     
     if not transcript_text:
         return None
-
-    def normalize_paragraph(text: str) -> str:
-        if not isinstance(text, str):
-            return text
-        return SPEAKER_FIX_RE.sub(r"\1: ", text)
-
-    transcript_text = [
-        normalize_paragraph(paragraph) for paragraph in transcript_text
-    ]
     
-    # Remove lines containing "Disclosure:" or "Disclaimer:" and all following lines
-    # Only check the last 50 lines of the transcript
-    check_start = max(0, len(transcript_text) - 50)
-    for idx in range(check_start, len(transcript_text)):
-        line = transcript_text[idx]
-        if line == 'Disclaimer:' or line == 'Disclosure:' or line.startswith('Is there an error in the transcript?'):
-            # Remove this line and all following lines
-            transcript_text = transcript_text[:idx]
-            break
-            
-    # Remove all instances of " : " from transcript text
-    transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
+    cleaned_transcript=clean_transcript(transcript_text)
     
     # Extract key points
     summary = extract_summary(soup)
@@ -561,10 +609,10 @@ def extract_transcript(html_content, episode_url):
     # Build result with fields in specific order: title, pub_date, summary, episode_url, transcript, youtube
     result = {
         "title": title,
-        "pub_date": pub_date,
+        "pub_date": formatted_date,
         "url": episode_url,
         "summary": summary,
-        "content": transcript_text,
+        "content": cleaned_transcript,
     }
 
     if youtube_data:
@@ -585,6 +633,8 @@ def create_filename_from_title(title, pub_date=None):
     """
     # Remove 'Episode N:' prefix if present
     cleaned = re.sub(r'Episode ','Ep', title)
+    cleaned = re.sub(r'^Epi(d|o|s|e){4} ', 'Ep', cleaned)
+    cleaned = re.sub(r'Understanding Crypto ','UC', cleaned)
     
     # Replace non-alphanumeric characters with underscores
     cleaned = re.sub(r'[^a-zA-Z0-9]+', '_', cleaned)

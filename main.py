@@ -4,20 +4,19 @@ Podcast Processing Pipeline
 Orchestrates the complete workflow: scraping, metrics, and categorization.
 
 Usage:
-  python pipeline.py                                    # Run full pipeline with defaults
-  python pipeline.py --help                             # Show all options
-  python pipeline.py --skip-scrape                      # Skip scraping step
-  python pipeline.py --scrape-retry-failed              # Retry failed episodes during scrape
-  python pipeline.py --metrics-use-cache                # Use cache with fallback to API
-  python pipeline.py --metrics-skip                     # Skip metrics calculation
-  python pipeline.py --min-percentile 50                # Use different percentile threshold
-  python pipeline.py --categorize-skip                  # Skip categorization
+    python main.py                             # Run full pipeline with defaults
+    python main.py --help                      # Show all options
+    python main.py --skip-scrape               # Skip scraping step
+    python main.py --scrape-retry-failed       # Retry failed episodes during scrape
+    python main.py --min-percentile 50         # Use different percentile threshold
+    python main.py --categorize-skip           # Skip categorization
 """
 
 import argparse
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 def parse_args():
@@ -50,16 +49,6 @@ def parse_args():
         action="store_true",
         help="Skip the metrics calculation step"
     )
-    parser.add_argument(
-        "--metrics-use-cache",
-        action="store_true",
-        help="Use cache with fallback to API (default: cache-only)"
-    )
-    parser.add_argument(
-        "--metrics-fetch",
-        action="store_true",
-        help="Fetch from API without using cache"
-    )
     
     # Categorization options
     parser.add_argument(
@@ -70,8 +59,8 @@ def parse_args():
     parser.add_argument(
         "--min-percentile",
         type=float,
-        default=30.0,
-        help="Minimum percentile threshold for including episodes (default: 30)"
+        default=50.0,
+        help="Minimum percentile threshold for including episodes (default: 50)"
     )
     
     return parser.parse_args()
@@ -106,18 +95,41 @@ def main():
     
     # Step 1: Scraping
     if not args.skip_scrape:
-        scrape_cmd = ["python", "scrape_transcripts.py"]
-        
-        if args.scrape_retry_failed:
-            scrape_cmd.append("--retry-failed")
-        elif args.scrape_url:
-            scrape_cmd.extend(["--url", args.scrape_url])
-        
-        if run_command("Scraping podcast episodes", scrape_cmd):
-            steps_completed.append("Scraping")
+        scrape_steps = []
+        if args.scrape_url:
+            parsed = urlparse(args.scrape_url)
+            host = (parsed.netloc or "").lower()
+            if "kitces.com" in host:
+                scrape_steps.append((
+                    "Kitces",
+                    ["python", "scrape_kitces.py", "--url", args.scrape_url]
+                ))
+            elif "rationalreminder.ca" in host:
+                scrape_steps.append((
+                    "Rational Reminder",
+                    ["python", "scrape_rationalreminder.py", "--url", args.scrape_url]
+                ))
+            else:
+                print("\n✗ Unknown scrape URL domain. Expected kitces.com or rationalreminder.ca")
+                print("\nPipeline aborted.")
+                return 1
         else:
-            print("\nPipeline aborted.")
-            return 1
+            rr_cmd = ["python", "scrape_rationalreminder.py"]
+            kitces_cmd = ["python", "scrape_kitces.py"]
+            if args.scrape_retry_failed:
+                rr_cmd.append("--retry-failed")
+                kitces_cmd.append("--retry-failed")
+            scrape_steps = [
+                ("Rational Reminder", rr_cmd),
+                ("Kitces", kitces_cmd),
+            ]
+
+        for source_label, scrape_cmd in scrape_steps:
+            if run_command(f"Scraping {source_label} episodes", scrape_cmd):
+                steps_completed.append(f"Scraping ({source_label})")
+            else:
+                print("\nPipeline aborted.")
+                return 1
     else:
         print("\n⊘ Skipped: Scraping (--skip-scrape)")
         steps_skipped.append("Scraping")
@@ -125,16 +137,6 @@ def main():
     # Step 2: Metrics
     if not args.skip_metrics:
         metrics_cmd = ["python", "fetch_youtube_metrics.py"]
-        
-        if args.metrics_fetch:
-            # Fetch from API without cache
-            pass
-        elif args.metrics_use_cache:
-            # Use cache with fallback to API
-            metrics_cmd.append("--use-cache")
-        else:
-            # Default: cache-only
-            metrics_cmd.append("--cache-only")
         
         if run_command("Fetching YouTube metrics", metrics_cmd):
             steps_completed.append("Metrics")
@@ -149,7 +151,7 @@ def main():
     if not args.skip_categorize:
         categorize_cmd = [
             "python",
-            "categorize_transcripts.py",
+            "compile_sources.py",
             "--min-percentile",
             str(args.min_percentile)
         ]
@@ -162,6 +164,20 @@ def main():
     else:
         print("\n⊘ Skipped: Categorization (--skip-categorize)")
         steps_skipped.append("Categorization")
+
+    # Step 4: Summary
+    summary_cmd = [
+        "python",
+        "compile_summary.py",
+        "--min-percentile",
+        str(args.min_percentile)
+    ]
+
+    if run_command("Compiling summary", summary_cmd):
+        steps_completed.append("Summary")
+    else:
+        print("\nPipeline aborted.")
+        return 1
     
     # Summary
     print("\n" + "="*70)

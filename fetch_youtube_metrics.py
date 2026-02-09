@@ -18,7 +18,6 @@ import json
 import bisect
 import math
 import os
-import re
 import sys
 import time
 from datetime import datetime, timedelta
@@ -34,15 +33,14 @@ except ImportError:
 import requests
 
 API_BASE = "https://www.googleapis.com/youtube/v3"
-CACHE_FILE = "youtube_data_cache.json"
-TRANSCRIPTS_DIR = "transcripts"
+CACHE_FILE = "output/youtube_data_cache.json"
+TRANSCRIPTS_DIR = "output/rational_reminder"
+SLEEP_BETWEEN_REQUESTS = 0.1
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch YouTube metrics for videos in transcript files")
-    parser.add_argument("--transcripts-dir", default=TRANSCRIPTS_DIR, help="Directory containing transcript JSON files")
-    parser.add_argument("--output", default="youtube_metrics.csv", help="Output CSV file")
-    parser.add_argument("--sleep", type=float, default=0.1, help="Sleep between API calls (seconds)")
+    parser.add_argument("--output", default="output/youtube_metrics.csv", help="Output CSV file")
     parser.add_argument("--use-cache", action="store_true", help="Use cached YouTube data if available, otherwise fetch")
     parser.add_argument("--cache-only", action="store_true", help="Only use cached data, error if cache doesn't exist")
     parser.add_argument("--cache-file", default=CACHE_FILE, help="Cache file path")
@@ -372,7 +370,7 @@ def main() -> int:
     cache_file = args.cache_file
     
     # Step 1: Scan transcript files to get video IDs and titles
-    video_refs = scan_transcript_files(args.transcripts_dir)
+    video_refs = scan_transcript_files(TRANSCRIPTS_DIR)
     if not video_refs:
         print("Error: No videos found in transcript files")
         return 1
@@ -414,7 +412,7 @@ def main() -> int:
                     print(f"  ... and {len(missing_video_ids) - 10} more")
                 return 1
             
-            new_videos = fetch_video_stats(api_key, missing_video_ids, args.sleep)
+            new_videos = fetch_video_stats(api_key, missing_video_ids, SLEEP_BETWEEN_REQUESTS)
             
             # Merge with cache
             videos_dict.update(new_videos)

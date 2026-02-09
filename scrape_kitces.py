@@ -30,6 +30,11 @@ ALLOWED_CATEGORIES = {
     "estate planning",
 }
 
+OUTRO_PREFIXES = [
+    "We really do use your feedback to shape our future content!",
+    "Quality? Nerdy? Relevant?"
+]
+
 DEBUG_MODE = False
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -272,6 +277,20 @@ def extract_content(soup):
         text = element.get_text(" ", strip=True)
         if text:
             text_blocks.append(text)
+    
+    # Remove lines containing "Click to Tweet"
+    text_blocks = [block for block in text_blocks if "Click To Tweet" not in block]
+
+    # Check last 10 lines for outro prefixes and remove them and all following lines
+    if len(text_blocks) > 0:
+        check_count = min(10, len(text_blocks))
+        for i in range(len(text_blocks) - check_count, len(text_blocks)):
+            for outro_prefix in OUTRO_PREFIXES:
+                if text_blocks[i].startswith(outro_prefix):
+                    # Remove this line and all following lines
+                    text_blocks = text_blocks[:i]
+                    return text_blocks
+    
     return text_blocks
 
 
@@ -412,7 +431,7 @@ def main():
     print(f"Articles saved in '{OUTPUT_DIR}/' directory")
     if failed:
         print(f"Failed URLs saved to '{args.failed_file}'")
-        print("Retry with: python scrape_kitces_bestof.py --retry-failed")
+        print("Retry with: python scrape_kitces.py --retry-failed")
     print("=" * 70)
     return 0
 
