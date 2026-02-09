@@ -3,19 +3,61 @@
 Compile key topics from all transcript files into a markdown document.
 """
 
+import csv
 import json
 import os
 from pathlib import Path
 
 
-def compile_key_topics(source_dirs=None, output_file="output/summary.md"):
+def load_youtube_metrics(metrics_file="output/youtube_metrics.csv"):
+    """
+    Load YouTube metrics from CSV and create a mapping of titles to percentiles.
+    
+    Args:
+        metrics_file: Path to YouTube metrics CSV file
+        
+    Returns:
+        Dictionary mapping video titles to percentile scores
+    """
+    metrics_by_title = {}
+    
+    if not os.path.exists(metrics_file):
+        print(f"Warning: YouTube metrics file '{metrics_file}' not found")
+        return metrics_by_title
+    
+    try:
+        with open(metrics_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                title = row.get('title', '').strip()
+                percentile_str = row.get('percentile', '')
+                
+                if title and percentile_str:
+                    try:
+                        percentile = float(percentile_str)
+                        metrics_by_title[title] = percentile
+                    except ValueError:
+                        # Skip rows where percentile is not a valid number
+                        pass
+        
+        print(f"Loaded YouTube metrics for {len(metrics_by_title)} episodes")
+    except Exception as e:
+        print(f"Error reading metrics file '{metrics_file}': {e}")
+    
+    return metrics_by_title
+
+
+def compile_key_topics(source_dirs=None, output_file="output/summary.md", min_percentile=None, metrics_file="output/youtube_metrics.csv"):
     """
     Read all transcript JSON files and compile their titles and summary
-    into a markdown file.
+    into a markdown file, optionally filtering by YouTube percentile threshold.
     
     Args:
         source_dirs: List of directories containing transcript JSON files
         output_file: Path to output markdown file
+        min_percentile: Minimum percentile threshold for YouTube videos (0-100).
+                       Posts without YouTube data are always included.
+        metrics_file: Path to YouTube metrics CSV file
     """
     if source_dirs is None:
         source_dirs = ["output/rational_reminder", "output/kitces"]
@@ -48,8 +90,15 @@ def compile_key_topics(source_dirs=None, output_file="output/summary.md"):
     
     print(f"\nTotal: {len(json_files)} transcript files from {len(source_dirs)} directories")
     
+    # Load YouTube metrics if percentile filtering is enabled
+    metrics_by_title = {}
+    if min_percentile is not None:
+        metrics_by_title = load_youtube_metrics(metrics_file)
+        print(f"Using minimum percentile threshold: {min_percentile}")
+    
     # Compile data
     posts = []
+    posts_filtered_out = 0
     
     for json_file in json_files:
         try:
@@ -62,6 +111,16 @@ def compile_key_topics(source_dirs=None, output_file="output/summary.md"):
                 # Ensure summary is a list (handle case where it's a single string)
                 if isinstance(summary, str):
                     summary = [summary] if summary else []
+                
+                # Check percentile threshold if filtering is enabled
+                if min_percentile is not None:
+                    if title in metrics_by_title:
+                        # Has YouTube data: check if it meets the threshold
+                        percentile = metrics_by_title[title]
+                        if percentile < min_percentile:
+                            posts_filtered_out += 1
+                            continue
+                    # else: No YouTube data - include by default
                 
                 posts.append({
                     'title': title,
@@ -91,7 +150,10 @@ def compile_key_topics(source_dirs=None, output_file="output/summary.md"):
             
             f.write("---\n\n")
     
+    # Report results
     print(f"Successfully compiled {len(posts)} posts to '{output_file}'")
+    if min_percentile is not None:
+        print(f"  (Filtered out {posts_filtered_out} posts below {min_percentile}th percentile)")
 
 
 if __name__ == "__main__":
@@ -111,7 +173,18 @@ if __name__ == "__main__":
         default='output/summary.md',
         help='Output markdown file (default: output/summary.md)'
     )
+    parser.add_argument(
+        '--min-percentile',
+        type=float,
+        default=None,
+        help='Minimum YouTube percentile threshold (0-100 scale). Sources without YouTube metadata are always included (default: no filtering)'
+    )
+    parser.add_argument(
+        '--metrics-file',
+        default='output/youtube_metrics.csv',
+        help='Path to YouTube metrics CSV file (default: output/youtube_metrics.csv)'
+    )
     
     args = parser.parse_args()
     
-    compile_key_topics(args.source_dirs, args.output)
+    compile_key_topics(args.source_dirs, args.output, args.min_percentile, args.metrics_file)

@@ -61,11 +61,6 @@
   },
   {
     "category": "Investing",
-    "subcategory": "Venture Capital & Innovation",
-    "description": "Focuses on early-stage investing, power laws in startups, and the economics of technological revolution. Distinct from general private equity."
-  },
-  {
-    "category": "Investing",
     "subcategory": "Bitcoin as an Asset",
     "description": "Evaluates Bitcoin specifically as a store of value or 'digital gold.' Discusses volatility, correlation with other assets, and the investment thesis."
   },
@@ -216,18 +211,8 @@
   },
   {
     "category": "Making Financial Decisions",
-    "subcategory": "Education Funding (RESPs)",
-    "description": "Specific strategies for funding higher education. Covers RESP optimization and grant maximization."
-  },
-  {
-    "category": "Making Financial Decisions",
     "subcategory": "Human Capital Theory",
     "description": "Viewing your career as a financial asset. Discusses the 'bond-like' or 'equity-like' nature of different professions."
-  },
-  {
-    "category": "Making Financial Decisions",
-    "subcategory": "Career Strategy & Earnings",
-    "description": "General advice on increasing earnings, negotiation, and career management. Distinct from the asset-pricing view of human capital."
   },
   {
     "category": "Financial Planning",
@@ -258,10 +243,5 @@
     "category": "Financial Planning",
     "subcategory": "Charitable Giving",
     "description": "Optimizing philanthropy. Covers Donor Advised Funds (DAFs) and donating appreciated securities."
-  },
-  {
-    "category": "Financial Planning",
-    "subcategory": "Couples & Finances",
-    "description": "Managing money in relationships. Covers joint accounts, financial infidelity, and aligning values."
   }
 ]
