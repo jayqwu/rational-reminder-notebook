@@ -15,6 +15,7 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+from pathvalidate import sanitize_filename
 
 # Configuration
 PODCAST_DIRECTORY_URL = "https://rationalreminder.ca/podcast-directory"
@@ -352,34 +353,50 @@ def clean_transcript(transcript_text):
         normalize_paragraph(paragraph) for paragraph in transcript_text
     ]
 
-    def trim_transcript_by_marker(paragraphs, marker):
-        marker_positions = [
-            idx for idx, paragraph in enumerate(paragraphs)
-            if isinstance(paragraph, str) and paragraph.strip() == marker
-        ]
-        if not marker_positions:
-            return paragraphs
-        if len(marker_positions) == 1:
-            return paragraphs[marker_positions[0] + 1:]
-        first_idx = marker_positions[0]
-        last_idx = marker_positions[-1]
-        return paragraphs[first_idx + 1:last_idx]
+    def trim_transcript_by_marker(paragraphs, markers):
+        """Trim transcript by any of the provided markers (mutually exclusive).
+        
+        Args:
+            paragraphs: List of transcript paragraphs
+            markers: List of marker strings to search for
+        
+        Returns:
+            Tuple of (trimmed_paragraphs, was_trimmed)
+        """
+        for marker in markers:
+            marker_positions = [
+                idx for idx, paragraph in enumerate(paragraphs)
+                if isinstance(paragraph, str) and paragraph.strip() == marker
+            ]
+            if not marker_positions:
+                continue
+            if len(marker_positions) == 1:
+                return paragraphs[marker_positions[0] + 1:], True
+            first_idx = marker_positions[0]
+            last_idx = marker_positions[-1]
+            return paragraphs[first_idx + 1:last_idx], True
+        
+        return paragraphs, False
     
     # Trim transcript text by known markers to remove intro and outro content
-    transcript_text = trim_transcript_by_marker(transcript_text, "***")
-    transcript_text = trim_transcript_by_marker(transcript_text, "[EPISODE]")
-    transcript_text = trim_transcript_by_marker(transcript_text, "[INTERVIEW]")
+    # Markers are mutually exclusive, so check all at once
+    transcript_text, trimmed_by_marker = trim_transcript_by_marker(
+        transcript_text, 
+        ["***", "[EPISODE]", "[INTERVIEW]"]
+    )
 
-    # Remove lines ending with "welcome to the Rational Reminder Podcast." and all preceding lines
+    # Remove lines ending with "welcome to the Rational Reminder Podcast" and all preceding lines
     # Only check lines 5 to 100 of the transcript
-    check_start = min(5, len(transcript_text))
-    check_end = min(100, len(transcript_text))
-    for idx in range(check_start, check_end):
-        line = transcript_text[idx]
-        if isinstance(line, str) and re.search(r'welcome[^(\.|\?|!)]+the rational reminder podcast(\.|\?|!)$', line, re.IGNORECASE):
-            # Remove this line and all preceding lines
-            transcript_text = transcript_text[idx + 1:]
-            break
+    # Skip this check if any marker-based trimming already occurred
+    if not trimmed_by_marker:
+        check_start = min(5, len(transcript_text))
+        check_end = min(100, len(transcript_text))
+        for idx in range(check_start, check_end):
+            line = transcript_text[idx]
+            if isinstance(line, str) and re.search(r'welcome[^(\.|\?|!)]+the rational reminder podcast(\.|\?|!)$', line, re.IGNORECASE):
+                # Remove this line and all preceding lines
+                transcript_text = transcript_text[idx + 1:]
+                break
 
     # Remove lines containing "Disclosure:" or "Disclaimer:" and all following lines
     # Only check the last 50 lines of the transcript
@@ -636,15 +653,9 @@ def create_filename_from_title(title, pub_date=None):
     cleaned = re.sub(r'^Epi(d|o|s|e){4} ', 'Ep', cleaned)
     cleaned = re.sub(r'Understanding Crypto ','UC', cleaned)
     
-    # Replace non-alphanumeric characters with underscores
-    cleaned = re.sub(r'[^a-zA-Z0-9]+', '_', cleaned)
-    
-    # Remove leading/trailing underscores and collapse multiple underscores
-    cleaned = re.sub(r'_+', '_', cleaned).strip('_')
-    
-    # Limit length to avoid filesystem issues
-    if len(cleaned) > 100:
-        cleaned = cleaned[:100].rstrip('_')
+    # Sanitize filename using pathvalidate, allowing common characters
+    # max_len accounts for date prefix (8 chars) and extension (5 chars) + separators (2 chars)
+    cleaned = sanitize_filename(cleaned, replacement_text='_', max_len=100)
     
     # Add date prefix if available
     if pub_date:

@@ -565,7 +565,7 @@ def main():
         markdown_content.append(f"# {category}\n\n")
             
         # Add description as subheading
-        markdown_content.append(f"## Topic Description\n{description}\n\n")
+        markdown_content.append(f"## Topic Description\n\n{description}\n\n")
     
         # Add metadata block for the category
         markdown_content.append(f"Pieces of Content: {len(episode_batch)}\n\n")

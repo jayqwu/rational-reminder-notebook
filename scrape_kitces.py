@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from urllib.parse import urlparse, urljoin, urlunparse
 
+from pathvalidate import sanitize_filename
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
@@ -332,12 +333,13 @@ def extract_article(html, url):
 
 
 def create_filename_from_title(title, pub_date=None):
-    cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", title)
-    cleaned = re.sub(r"_+", "_", cleaned).strip("_")
-    if len(cleaned) > 100:
-        cleaned = cleaned[:100].rstrip("_")
     if pub_date:
-        return f"{pub_date}_{cleaned}.json"
+        cleaned = f"{pub_date}_{title}"
+    else:
+        cleaned = title
+
+    cleaned = sanitize_filename(cleaned, replacement_text='_', max_len=100)
+
     return f"{cleaned}.json"
 
 
