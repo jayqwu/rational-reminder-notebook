@@ -1,6 +1,89 @@
 [
   {
     "category": "Investing",
+    "subcategory": "Bubbles and Crashes: Dot-com, Housing, and Mania Case Studies",
+    "description": "Episodes and articles focused on specific historical bubbles and crash dynamics (dot-com, housing booms, crypto manias) and what actually happened ex-post. Emphasizes mechanisms (capital flows, narratives, issuance) rather than generic cautions about “bubbles”."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Narrative Investing and Story-Driven Return Expectations",
+    "description": "How compelling stories (innovation, disruption, AI, ‘new era’ claims) distort expectations and drive mispricing. Includes extrapolation, attention effects, and why great narratives often fail to translate into great investor returns."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Thematic ETFs: Product Design, Dilution, and Lifecycle Underperformance",
+    "description": "Research on thematic ETF construction and why themes often disappoint: share issuance, valuation compression, rebalancing rules, and crowding. Designed for content that discusses thematic products specifically (not bubbles broadly)."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Speculation Vehicles: Single-Stock, Leveraged, Inverse, and Options-Based ETFs",
+    "description": "Products engineered for trading rather than long-horizon investing, including single-stock and leveraged ETFs and their structural decay or path dependence. Includes why these vehicles amplify behavioral mistakes and often underperform simple benchmarks."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Yield Products and Engineered Income: Covered Calls and Buffer ETFs",
+    "description": "Income-centric products that reshape payoff distributions (capped upside, persistent downside) and market them as ‘yield’. Includes covered call funds, buffered ETFs, and why high distributions can coincide with lower long-run wealth."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Bubbles vs Valuations: What Predicts Returns (and What Doesn’t)",
+    "description": "Distinguishes bubble talk from valuation-based expected return logic and base rates. Covers evidence on concentration, CAPE/valuation signals, and why market timing based on ‘bubble’ narratives is unreliable."
+  },
+
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Panic Selling and Crash Behavior: Triggers, Timing, and Mitigations",
+    "description": "Empirical and practical discussion of when investors sell in drawdowns, what triggers panic, and how timing damages outcomes. Includes interventions like automation, constraints, and advisor coaching aimed at preventing forced errors."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Performance Chasing and Flow-Driven Mistakes (Funds, ETFs, Managers)",
+    "description": "How investors chase recent winners (funds, sectors, themes) and systematically buy high/sell low. Includes Morningstar-rating effects, social proof, and why flows tend to predict poor subsequent returns for buyers."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Overmonitoring, News Consumption, and the ‘Action Bias’",
+    "description": "How frequent portfolio checking, financial media, and social platforms increase trading and undermine discipline. Focuses on reducing noise exposure, building friction, and designing habits that support long-term adherence."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Behavioral Coaching and Commitment Devices (Advice as a Feature)",
+    "description": "How advisors, systems, and defaults act as commitment devices to improve investor behavior. Includes accountability structures, policy statements, delegation, and when paying for simplicity/coaching improves outcomes."
+  },
+  {
+    "category": "Behavioral finance",
+    "subcategory": "Behavior Gaps in Retirement: Spending Rigidity and Underspending",
+    "description": "Behavioral explanations for why retirees often spend less than plans allow and resist drawing down portfolios. Includes fear of uncertainty, mental accounting, and how framing and income floors influence comfort with spending."
+  },
+
+  {
+    "category": "Portfolio management",
+    "subcategory": "Direct Indexing for Tax-Loss Harvesting at Scale",
+    "description": "Direct indexing implementations primarily motivated by systematic tax-loss harvesting across many individual securities. Includes wash sale management, tracking error control, and comparing value versus pooled vehicles."
+  },
+  {
+    "category": "Portfolio management",
+    "subcategory": "Direct Indexing for Tax Management: Gains Harvesting and Bracket Arbitrage",
+    "description": "Using direct indexing to harvest gains intentionally (including 0% capital gains windows) and manage embedded gains over time. Best fit for content about bracket-aware selling and capital-gains budgeting strategies."
+  },
+  {
+    "category": "Portfolio management",
+    "subcategory": "Direct Indexing for ESG and Personalized Exclusions",
+    "description": "Building a personalized index that excludes or tilts away from specific industries or companies while maintaining broad exposure. Includes tradeoffs: tracking error, concentration, factor drift, and costs."
+  },
+  {
+    "category": "Portfolio management",
+    "subcategory": "Direct Indexing Completion Portfolios for Concentrated Positions",
+    "description": "Using indexed holdings to diversify around existing concentrated exposure (employer stock, legacy holdings, sector human-capital risk). Includes constraints, transition management, and realistic diversification pathways."
+  },
+  {
+    "category": "Portfolio management",
+    "subcategory": "Direct Indexing Operations: Trading, Rebalancing, and Tracking Error Control",
+    "description": "Practical mechanics of running direct-index portfolios: rebalancing rules, tax-lot selection, trading costs, and error relative to benchmark. Use for implementation-heavy discussions rather than conceptual ‘why direct indexing’ content."
+  },
+
+  {
+    "category": "Investing",
     "subcategory": "Efficient Markets (EMH) and Market Efficiency Tests",
     "description": "Evidence and intuition behind the Efficient Market Hypothesis (weak, semi-strong, strong forms) and what market efficiency does and does not claim. Includes common myths, limits of tests, and why beating the market is hard even for experts."
   },
@@ -33,11 +116,6 @@
     "category": "Investing",
     "subcategory": "Long-Run Stock Return Drivers and Skewness",
     "description": "Where stock returns come from (cash flows and discount rates) and why outcomes are dominated by a small set of big winners. Emphasizes skewness, dispersion, and why diversification matters for capturing wealth creation."
-  },
-  {
-    "category": "Investing",
-    "subcategory": "Bubbles, Narratives, and Thematic Investing",
-    "description": "How exciting stories and extrapolation lead to overpriced themes and disappointing long-term results. Includes the mechanics of dilution, poor investor timing, and why thematic ETFs often underperform despite compelling narratives."
   },
   {
     "category": "Investing",
@@ -171,17 +249,7 @@
     "subcategory": "Account Priority and Contribution Ordering (Tax Shelters)",
     "description": "Frameworks for deciding which accounts to fund first based on tax treatment, contribution limits, and household goals. Includes coordination across multiple vehicles and tradeoffs between flexibility and tax efficiency."
   },
-  {
-    "category": "Portfolio management",
-    "subcategory": "Direct Indexing: Tax, Customization, and Completion Portfolios",
-    "description": "Using individual stock baskets to replicate an index while enabling tax optimization, ESG constraints, or diversification around concentrated positions. Focuses on when direct indexing is worth complexity and where it can backfire."
-  },
 
-  {
-    "category": "Behavioral finance",
-    "subcategory": "Investor Behavior Gaps: Panic Selling, Performance Chasing",
-    "description": "Why investors underperform their own funds due to timing decisions, over-monitoring, and emotional reactions in drawdowns. Includes research on who panics, when, and what structures reduce self-sabotage."
-  },
   {
     "category": "Behavioral finance",
     "subcategory": "Cognitive Biases in Markets: Overconfidence, Framing, Miscalibration",
