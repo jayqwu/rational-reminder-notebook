@@ -136,7 +136,12 @@ def main():
             return 1
     
     # Step 2: Metrics
-    if not args.skip_metrics:
+    needs_percentiles = args.min_percentile > 0
+    if args.skip_metrics or not needs_percentiles:
+        reason = "--skip-metrics" if args.skip_metrics else "min-percentile <= 0"
+        print(f"\n⊘ Skipped: Metrics ({reason})")
+        steps_skipped.append("Metrics")
+    else:
         metrics_cmd = ["python", "fetch_youtube_metrics.py"]
         
         if run_command("Fetching YouTube metrics", metrics_cmd):
@@ -144,9 +149,6 @@ def main():
         else:
             print("\nPipeline aborted.")
             return 1
-    else:
-        print("\n⊘ Skipped: Metrics (--skip-metrics)")
-        steps_skipped.append("Metrics")
     
     # Step 3: Categorization
     if not args.skip_categorize:

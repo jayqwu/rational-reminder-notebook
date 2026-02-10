@@ -92,7 +92,7 @@ def compile_key_topics(source_dirs=None, output_file="output/summaries/Full Summ
     
     # Load YouTube metrics if percentile filtering is enabled
     metrics_by_title = {}
-    if min_percentile is not None:
+    if min_percentile is not None and min_percentile > 0:
         metrics_by_title = load_youtube_metrics(metrics_file)
         print(f"Using minimum percentile threshold: {min_percentile}")
     
@@ -113,7 +113,7 @@ def compile_key_topics(source_dirs=None, output_file="output/summaries/Full Summ
                     summary = [summary] if summary else []
                 
                 # Check percentile threshold if filtering is enabled
-                if min_percentile is not None:
+                if min_percentile is not None and min_percentile > 0:
                     if title in metrics_by_title:
                         # Has YouTube data: check if it meets the threshold
                         percentile = metrics_by_title[title]
@@ -152,7 +152,7 @@ def compile_key_topics(source_dirs=None, output_file="output/summaries/Full Summ
     
     # Report results
     print(f"Successfully compiled {len(posts)} pieces of content to '{output_file}'")
-    if min_percentile is not None:
+    if min_percentile is not None and min_percentile > 0:
         print(f"  (Filtered out {posts_filtered_out} pieces of content below {min_percentile}th percentile)")
 
 

@@ -12,6 +12,7 @@ from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
+import shutil
 
 DEFAULT_SOURCE_DIRS = ["output/rational_reminder", "output/kitces"]
 METRICS_FILE = "output/youtube_metrics.csv"
@@ -21,16 +22,23 @@ OUTPUT_SIMILARITIES_CSV = Path("output/episode_similarity_matrix.csv")
 CACHE_FILE = Path("output/episodes_cache.json")
 
 # Similarity thresholds for relevance levels (these can be tuned based on observed score distribution)
-SIMILARITY_VERY_HIGH = 0.60
-SIMILARITY_HIGH = 0.50
-SIMILARITY_AVERAGE = 0.40
-SIMILARITY_LOW = 0.30
+SIMILARITY_VERY_HIGH = 0.5
+SIMILARITY_HIGH = 0.4
+SIMILARITY_AVERAGE = 0.3
+SIMILARITY_LOW = 0.2
+
+# Weights for combining title and summary similarities (can be tuned)
+WEIGHT_TITLE = 0.20
+WEIGHT_SUMMARY = 0.80
 
 # Exclude episodes whose titles contain any of these strings (case-insensitive)
 EXCLUDE_TITLES = [
     "Year in Review",
     "Scott Galloway",
     "Comprehensive Overview",
+    "Retrospective",
+    "Episode 389: How the Rational Reminder Podcast is Made",
+    "Bonus Episode: Jim Watson: Building a Future for the City: An Interview with the Mayor of Ottawa",
 ]
 
 # GPU/embedding controls tuned for laptop GPUs
@@ -197,15 +205,19 @@ def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, m
     title = episode_data.get('title', '')
     summary = episode_data.get('summary', [])
 
-    episode_text = create_episode_text(title, summary).strip()
-    if not episode_text:
-        episode_text = title or ""
+    title_text = (title or "").strip()
+    summary_text = create_episode_text("", summary).strip()
+    if not summary_text:
+        summary_text = title_text
 
-    # Encode episode text to a single embedding
-    episode_embedding = model.encode(episode_text, convert_to_tensor=True, batch_size=BATCH_SIZE)
-    
-    # Compute cosine similarities
-    similarities = util.cos_sim(episode_embedding, category_embeddings)[0]
+    # Encode title and summary separately
+    title_embedding = model.encode(title_text, convert_to_tensor=True, batch_size=BATCH_SIZE)
+    summary_embedding = model.encode(summary_text, convert_to_tensor=True, batch_size=BATCH_SIZE)
+
+    # Compute cosine similarities and combine with equal weights
+    title_similarities = util.cos_sim(title_embedding, category_embeddings)[0]
+    summary_similarities = util.cos_sim(summary_embedding, category_embeddings)[0]
+    similarities = WEIGHT_TITLE * title_similarities + WEIGHT_SUMMARY * summary_similarities
     
     # Find best match
     best_idx = similarities.argmax().item()
@@ -301,6 +313,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    load_dotenv()
     
     # Load taxonomy
     print("Loading taxonomy...")
@@ -584,9 +598,14 @@ def main():
     
     # Generate markdown files for each category
     FULL_OUTPUT_DIR = Path("output/categorized")
-    FULL_OUTPUT_DIR.mkdir(exist_ok=True)
-
     SUMMARY_OUTPUT_DIR = Path("output/summaries")   
+    
+    # Clean up output subdirectories if they exist
+    for subdir in [FULL_OUTPUT_DIR, SUMMARY_OUTPUT_DIR]:
+        if subdir.exists():
+            shutil.rmtree(subdir)
+    
+    FULL_OUTPUT_DIR.mkdir(exist_ok=True)
     SUMMARY_OUTPUT_DIR.mkdir(exist_ok=True)
 
     # Track statistics for CSV output
@@ -656,24 +675,25 @@ def main():
         })
     
     # Print summary
-    print("\n" + "="*100)
+    print("\n" + "="*95)
     print("Categorization Summary")
-    print("="*100)
+    print("="*95)
     
     # Sort by word count (descending)
     sorted_stats = sorted(category_statistics, key=lambda x: x['WC'], reverse=True)
     
     # Print header
-    print(f"{'Topics':<78} {'Content':>10} {'Words':>10}")
-    print("-" * 100)
+    print(f"{'Topics':<22} {'Subtopics':<52} {'Content':>8} {'Words':>10}")
+    print("-" * 95)
     
     # Print each category with consistent column widths
     for stat in sorted_stats:
-        category_label = f"{stat['Category']} - {stat['Subcategory']}"
+        category_label = f"{stat['Category']}"
+        subcategory_label = f"{stat['Subcategory']}"
         episode_count = stat['#']
         word_count = stat['WC']
-        print(f"{category_label:<78} {episode_count:>10} {word_count:>10,}")
-    print("="*100)
+        print(f"{category_label:<22} {subcategory_label:<52} {episode_count:>8} {word_count:>10,}")
+    print("="*95)
     
     if not args.use_cache:
         print(f"\n✓ Wrote episode match CSV to {OUTPUT_MATCHES_CSV}")
@@ -700,5 +720,4 @@ def main():
     print(f"✓ Wrote category statistics to {STATS_CSV}")
 
 if __name__ == "__main__":
-    load_dotenv()
     main()

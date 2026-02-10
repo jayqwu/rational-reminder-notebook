@@ -1,8 +1,8 @@
 [
   {
     "category": "Behavioral Finance",
-    "subcategory": "Behavioral Coaching & Advisor Alpha",
-    "description": "This topic focuses on the value-add of an advisor beyond investment selection, often termed \"Advisor's Alpha\" or \"Gamma.\" It highlights the critical role of behavioral coaching—preventing panic selling and enforcing discipline—as well as technical optimizations like tax-efficient withdrawal strategies and rebalancing that improve net outcomes."
+    "subcategory": "Behavioral Coaching & Investor Discipline",
+    "description": "This topic focuses on the behavioral and psychological coaching role of financial advisors in helping clients maintain long-term investment discipline. It emphasizes how advisors prevent emotionally-driven mistakes such as panic selling during market downturns, chasing performance, and abandoning well-constructed plans during periods of volatility or uncertainty. The topic covers the accountability mechanisms, emotional support, and communication strategies that keep investors committed to their financial plans despite market noise and psychological pressures. It explores how effective coaching translates abstract investment principles into sustained behavior change, addressing the critical role advisors play in closing the \"behavior gap\" between market returns and actual investor returns through ongoing guidance and support."
   },
   {
     "category": "Behavioral Finance",
@@ -118,6 +118,11 @@
   "category": "Investing",
   "subcategory": "Index Fund Construction & Methodology",
   "description": "This topic looks \"under the hood\" of index funds. It covers the history of the index fund revolution, the discretion index providers exercise when defining benchmarks (arguing that \"passive\" is actually rules-based active management), and the complex operational implementation required by fund managers to minimize tracking error and manage corporate actions."
+  },
+  {
+    "category": "Investing",
+    "subcategory": "Index Fund History & Industry Evolution",
+    "description": "This topic traces the origin and spread of index funds, from early institutional experiments to the rise of Vanguard, DFA, and the ETF ecosystem. It covers key personalities, cultural and regulatory shifts, and how fee compression and competition reshaped asset management. The focus is on the historical arc of indexing and how the industry adopted (and sometimes resisted) the idea of market exposure as a default investment solution."
   },
   {
     "category": "Investing",
