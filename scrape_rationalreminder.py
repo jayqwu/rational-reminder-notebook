@@ -147,7 +147,7 @@ def fetch_podcast_directory():
 def fetch_episode_page(episode_url):
     """Fetch the HTML content of an episode page."""
     try:
-        response = requests.get(episode_url, timeout=10)
+        response = requests.get(episode_url, timeout=15)
         response.raise_for_status()
         return response.text
     except requests.RequestException as e:
@@ -707,9 +707,10 @@ def scrape_episode(episode_url, url_cache=None, force_rescrape=False):
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(transcript_data, f, ensure_ascii=False, indent=2)
     
-    # Update cache
+    # Update cache and save to disk immediately
     if url_cache:
         url_cache.add_url(episode_url, output_file)
+        url_cache.save_cache()
     
     return transcript_data
 

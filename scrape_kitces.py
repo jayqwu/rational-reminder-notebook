@@ -20,7 +20,7 @@ from url_cache import URLCache
 BEST_OF_URL = "https://www.kitces.com/best-of-posts/"
 OUTPUT_DIR = "output/kitces"
 FAILED_URLS_FILE = "output/failed_kitces.json"
-DELAY_BETWEEN_REQUESTS = 0.5
+DELAY_BETWEEN_REQUESTS = 0.5 # seconds
 
 ALLOWED_CATEGORIES = {
     "annuities",
@@ -369,6 +369,7 @@ def scrape_single(url, url_cache=None, force_rescrape=False):
         # Add filtered URL to cache so we don't check it again
         if url_cache:
             url_cache.add_filtered_url(url)
+            url_cache.save_cache()
         return "FILTERED"
     if not article:
         return None
@@ -378,9 +379,10 @@ def scrape_single(url, url_cache=None, force_rescrape=False):
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(article, handle, ensure_ascii=False, indent=2)
     
-    # Update cache
+    # Update cache and save to disk immediately
     if url_cache:
         url_cache.add_url(url, output_path)
+        url_cache.save_cache()
     
     return article
 
