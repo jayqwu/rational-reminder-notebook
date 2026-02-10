@@ -15,6 +15,7 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+from url_cache import URLCache
 
 # Configuration
 PODCAST_DIRECTORY_URL = "https://rationalreminder.ca/podcast-directory"
@@ -61,6 +62,8 @@ def parse_args():
                        help="Only retry previously failed URLs")
     parser.add_argument("--failed-file", default=FAILED_URLS_FILE,
                        help="Path to failed URLs JSON file")
+    parser.add_argument("--force", action="store_true",
+                       help="Force re-scrape even if URL is already cached")
     parser.add_argument("--debug", action="store_true",
                        help="Debug mode: terminate on any warnings")
     return parser.parse_args()
@@ -671,8 +674,22 @@ def create_filename_from_title(title, pub_date=None):
     return filename
 
 
-def scrape_episode(episode_url):
-    """Scrape a single episode and save to file."""
+def scrape_episode(episode_url, url_cache=None, force_rescrape=False):
+    """Scrape a single episode and save to file.
+    
+    Args:
+        episode_url: URL of the episode to scrape
+        url_cache: URLCache instance for tracking scraped URLs
+        force_rescrape: If True, scrape even if URL is already cached
+    
+    Returns:
+        Transcript data dict if successful, None otherwise
+    """
+    # Check cache first (unless force_rescrape is enabled)
+    if url_cache and not force_rescrape:
+        if url_cache.is_cached(episode_url):
+            return "CACHED"
+    
     # Fetch episode page and extract transcript
     html = fetch_episode_page(episode_url)
     transcript_data = extract_transcript(html, episode_url)
@@ -690,11 +707,24 @@ def scrape_episode(episode_url):
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(transcript_data, f, ensure_ascii=False, indent=2)
     
+    # Update cache
+    if url_cache:
+        url_cache.add_url(episode_url, output_file)
+    
     return transcript_data
 
 
-def scrape_all_episodes(episode_urls):
-    """Scrape all episodes with progress tracking and rate limiting."""
+def scrape_all_episodes(episode_urls, url_cache=None, force_rescrape=False):
+    """Scrape all episodes with progress tracking and rate limiting.
+    
+    Args:
+        episode_urls: List of episode URLs to scrape
+        url_cache: URLCache instance for tracking scraped URLs
+        force_rescrape: If True, scrape even if URLs are already cached
+    
+    Returns:
+        Tuple of (successful_episodes, failed_urls)
+    """
     if not episode_urls:
         print("No episodes found to scrape.")
         return [], []
@@ -704,21 +734,26 @@ def scrape_all_episodes(episode_urls):
     
     successful = []
     failed_urls = []
+    skipped_cached = 0
     
     for episode_url in tqdm(episode_urls, desc="Scraping episodes"):
-        transcript_data = scrape_episode(episode_url)
+        transcript_data = scrape_episode(episode_url, url_cache, force_rescrape)
         
-        if transcript_data:
+        if transcript_data == "CACHED":
+            skipped_cached += 1
+        elif transcript_data:
             successful.append(transcript_data['title'])
         else:
             failed_urls.append(episode_url)
             handle_warning(f"Failed to extract transcript from {episode_url}")
         
-        # Rate limiting - don't delay on last episode
-        if episode_url != episode_urls[-1]:
+        # Rate limiting - don't delay on last episode or cached episodes
+        if episode_url != episode_urls[-1] and transcript_data != "CACHED":
             time.sleep(DELAY_BETWEEN_REQUESTS)
     
     print(f"\n✓ Successfully scraped: {len(successful)} episodes")
+    if skipped_cached > 0:
+        print(f"⊘ Skipped (already cached): {skipped_cached} episodes")
     if failed_urls:
         print(f"✗ Failed to scrape: {len(failed_urls)} URLs")
         for url in failed_urls[:10]:  # Show first 10 failures
@@ -739,8 +774,14 @@ def main():
     print("Rational Reminder Podcast Transcript Scraper")
     if DEBUG_MODE:
         print("(Debug mode enabled - will terminate on any warnings)")
+    if args.force:
+        print("(Force rescrape enabled - will overwrite cached URLs)")
     print("="*70)
     print()
+    
+    # Initialize URL cache
+    url_cache = URLCache()
+    print(f"Loaded URL cache with {url_cache.get_cache_size()} entries\n")
     
     # Step 1: Get list of URLs to scrape
     if args.url:
@@ -749,14 +790,18 @@ def main():
         print(f"URL: {args.url}")
         print()
         
-        transcript_data = scrape_episode(args.url)
-        if transcript_data:
+        transcript_data = scrape_episode(args.url, url_cache, args.force)
+        if transcript_data == "CACHED":
+            print(f"\n⊘ Episode already cached (use --force to re-scrape)")
+            return 0
+        elif transcript_data:
             title = transcript_data['title']
             pub_date = transcript_data.get('pub_date', 'unknown')
             filename = create_filename_from_title(title, transcript_data.get('pub_date'))
             print(f"\n✓ Successfully scraped: {title}")
             print(f"  Publication date: {pub_date}")
             print(f"  Saved to: {os.path.join(TRANSCRIPTS_DIR, filename)}")
+            url_cache.save_cache()
             return 0
         else:
             print(f"\n✗ Failed to scrape episode from {args.url}")
@@ -776,9 +821,13 @@ def main():
             return 1
     
     # Step 2: Scrape all episodes
-    successful_episodes, failed_urls = scrape_all_episodes(episode_urls)
+    successful_episodes, failed_urls = scrape_all_episodes(episode_urls, url_cache, args.force)
     
-    # Step 3: Save failed URLs for future retry
+    # Step 3: Save URL cache
+    url_cache.save_cache()
+    print(f"\n✓ URL cache updated ({url_cache.get_cache_size()} total entries)")
+    
+    # Step 4: Save failed URLs for future retry
     if failed_urls:
         save_failed_urls(failed_urls, args.failed_file)
     elif os.path.exists(args.failed_file) and not args.retry_failed:
@@ -786,7 +835,7 @@ def main():
         os.remove(args.failed_file)
         print(f"✓ Cleared {args.failed_file} (no failures)")
     
-    if not successful_episodes:
+    if not successful_episodes and not url_cache.get_cache_size():
         print("\n✗ No episodes were successfully scraped.")
         return 1
     
@@ -795,7 +844,7 @@ def main():
     print(f"Transcripts saved in '{TRANSCRIPTS_DIR}/' directory")
     if failed_urls:
         print(f"Failed URLs saved to '{args.failed_file}'")
-        print(f"  Retry with: python scrape_transcripts.py --retry-failed")
+        print(f"  Retry with: python scrape_rationalreminder.py --retry-failed")
     print("="*70)
     
     return 0

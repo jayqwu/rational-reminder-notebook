@@ -6,10 +6,10 @@ Orchestrates the complete workflow: scraping, metrics, and categorization.
 Usage:
     python main.py                             # Run full pipeline with defaults
     python main.py --help                      # Show all options
-    python main.py --skip-scrape               # Skip scraping step
+    python main.py --force                     # Force re-scrape even if URLs are cached
     python main.py --scrape-retry-failed       # Retry failed episodes during scrape
     python main.py --min-percentile 50         # Use different percentile threshold
-    python main.py --categorize-skip           # Skip categorization
+    python main.py --skip-categorize           # Skip categorization
 """
 
 import argparse
@@ -28,9 +28,9 @@ def parse_args():
     
     # Scraping options
     parser.add_argument(
-        "--skip-scrape",
+        "--force",
         action="store_true",
-        help="Skip the scraping step"
+        help="Force re-scrape even if URLs are already cached"
     )
     parser.add_argument(
         "--scrape-retry-failed",
@@ -59,8 +59,8 @@ def parse_args():
     parser.add_argument(
         "--min-percentile",
         type=float,
-        default=50.0,
-        help="Minimum percentile threshold for including episodes (default: 50)"
+        default=-1,
+        help="Minimum percentile threshold for including episodes (default: off)"
     )
     
     return parser.parse_args()
@@ -94,45 +94,46 @@ def main():
     steps_skipped = []
     
     # Step 1: Scraping
-    if not args.skip_scrape:
-        scrape_steps = []
-        if args.scrape_url:
-            parsed = urlparse(args.scrape_url)
-            host = (parsed.netloc or "").lower()
-            if "kitces.com" in host:
-                scrape_steps.append((
-                    "Kitces",
-                    ["python", "scrape_kitces.py", "--url", args.scrape_url]
-                ))
-            elif "rationalreminder.ca" in host:
-                scrape_steps.append((
-                    "Rational Reminder",
-                    ["python", "scrape_rationalreminder.py", "--url", args.scrape_url]
-                ))
-            else:
-                print("\n✗ Unknown scrape URL domain. Expected kitces.com or rationalreminder.ca")
-                print("\nPipeline aborted.")
-                return 1
+    scrape_steps = []
+    if args.scrape_url:
+        parsed = urlparse(args.scrape_url)
+        host = (parsed.netloc or "").lower()
+        if "kitces.com" in host:
+            scrape_steps.append((
+                "Kitces",
+                ["python", "scrape_kitces.py", "--url", args.scrape_url]
+            ))
+        elif "rationalreminder.ca" in host:
+            scrape_steps.append((
+                "Rational Reminder",
+                ["python", "scrape_rationalreminder.py", "--url", args.scrape_url]
+            ))
         else:
-            rr_cmd = ["python", "scrape_rationalreminder.py"]
-            kitces_cmd = ["python", "scrape_kitces.py"]
-            if args.scrape_retry_failed:
-                rr_cmd.append("--retry-failed")
-                kitces_cmd.append("--retry-failed")
-            scrape_steps = [
-                ("Rational Reminder", rr_cmd),
-                ("Kitces", kitces_cmd),
-            ]
-
-        for source_label, scrape_cmd in scrape_steps:
-            if run_command(f"Scraping {source_label} episodes", scrape_cmd):
-                steps_completed.append(f"Scraping ({source_label})")
-            else:
-                print("\nPipeline aborted.")
-                return 1
+            print("\n✗ Unknown scrape URL domain. Expected kitces.com or rationalreminder.ca")
+            print("\nPipeline aborted.")
+            return 1
     else:
-        print("\n⊘ Skipped: Scraping (--skip-scrape)")
-        steps_skipped.append("Scraping")
+        rr_cmd = ["python", "scrape_rationalreminder.py"]
+        kitces_cmd = ["python", "scrape_kitces.py"]
+        if args.scrape_retry_failed:
+            rr_cmd.append("--retry-failed")
+            kitces_cmd.append("--retry-failed")
+        scrape_steps = [
+            ("Rational Reminder", rr_cmd),
+            ("Kitces", kitces_cmd),
+        ]
+
+    # Add --force flag to all scrape commands if specified
+    if args.force:
+        for i, (label, cmd) in enumerate(scrape_steps):
+            scrape_steps[i] = (label, cmd + ["--force"])
+
+    for source_label, scrape_cmd in scrape_steps:
+        if run_command(f"Scraping {source_label} episodes", scrape_cmd):
+            steps_completed.append(f"Scraping ({source_label})")
+        else:
+            print("\nPipeline aborted.")
+            return 1
     
     # Step 2: Metrics
     if not args.skip_metrics:
@@ -149,12 +150,9 @@ def main():
     
     # Step 3: Categorization
     if not args.skip_categorize:
-        categorize_cmd = [
-            "python",
-            "compile_sources.py",
-            "--min-percentile",
-            str(args.min_percentile)
-        ]
+        categorize_cmd = ["python", "compile_sources.py"]
+        if args.min_percentile != -1:
+            categorize_cmd.extend(["--min-percentile", str(args.min_percentile)])
         
         if run_command("Categorizing episodes", categorize_cmd):
             steps_completed.append("Categorization")
@@ -166,12 +164,9 @@ def main():
         steps_skipped.append("Categorization")
 
     # Step 4: Summary
-    summary_cmd = [
-        "python",
-        "compile_summary.py",
-        "--min-percentile",
-        str(args.min_percentile)
-    ]
+    summary_cmd = ["python", "compile_summary.py"]
+    if args.min_percentile != -1:
+        summary_cmd.extend(["--min-percentile", str(args.min_percentile)])
 
     if run_command("Compiling summary", summary_cmd):
         steps_completed.append("Summary")

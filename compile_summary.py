@@ -176,8 +176,8 @@ if __name__ == "__main__":
     parser.add_argument(
         '--min-percentile',
         type=float,
-        default=50.0,
-        help='Minimum YouTube percentile threshold (0-100 scale). Sources without YouTube metadata are always included (default: 50)'
+        default=-1,
+        help='Minimum YouTube percentile threshold (0-100 scale). Sources without YouTube metadata are always included (default: off)'
     )
     parser.add_argument(
         '--metrics-file',

@@ -142,6 +142,43 @@ def popularity_to_tier(value):
     else:
         return "Very Low"
 
+def append_episode_markdown(target, episode, include_content=False):
+    """Append episode markdown to target list.
+
+    Args:
+        target: list of markdown strings to append to
+        episode: episode data dictionary
+        include_content: whether to append episode content paragraphs
+    """
+    target.append(f"## {episode['title']}\n\n")
+    target.append(f"Published date: {episode.get('published_date', 'N/A')}\n\n")
+    target.append(f"Episode URL: {episode.get('url', 'N/A')}\n\n")
+
+    if episode.get('popularity_percentile', -1) >= 0:
+        target.append(
+            f"Audience Popularity: popularity_to_tier({episode['popularity_percentile']})\n\n"
+        )
+
+    target.append(f"Category relevance: {episode.get('category_relevance', 'N/A')}\n\n")
+    if episode.get('related_categories'):
+        target.append("Related categories:\n\n")
+        for related_cat in episode['related_categories']:
+            target.append(f"- {related_cat}\n")
+        target.append("\n")
+
+    if episode.get('summary'):
+        target.append("### Summary\n\n")
+        for item in episode['summary']:
+            target.append(f"- {item}\n")
+        target.append("\n")
+
+    if include_content:
+        target.append("### Content\n\n")
+        for paragraph in episode['content']:
+            target.append(f"{paragraph}\n\n")
+
+    target.append("---\n\n")
+
 def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, model, return_similarities=False):
     """Assign a category to an episode based on semantic similarity.
     
@@ -247,8 +284,8 @@ def parse_args():
     parser.add_argument(
         "--min-percentile",
         type=float,
-        default=50,
-        help="Minimum percentile threshold for including episodes (default: 50)"
+        default=-1,
+        help="Minimum percentile threshold for including episodes (default: off)"
     )
     parser.add_argument(
         "--metrics-file",
@@ -354,8 +391,13 @@ def main():
         
         print(f"\nTotal: {len(episode_files)} episode files")
         
+        if args.min_percentile < 0:
+            disp_min_perc = "None"
+        else:
+            disp_min_perc = f"{args.min_percentile}th percentile"
+
         # Pre-filter episodes by percentile threshold and title exclusions
-        print(f"Filtering episodes by percentile threshold ({args.min_percentile}) and title exclusions...")
+        print(f"Filtering episodes by percentile threshold ({disp_min_perc}) and title exclusions...")
         filtered_episode_files = []
         episodes_skipped_percentile = 0
         episodes_excluded_by_title = 0
@@ -561,63 +603,37 @@ def main():
         episode_batch = episodes
         
         markdown_summary = []
+        markdown_full = []
         
         # Get description for this category
         description = category_to_description.get(category, "")
-        
-        # Add header first
-        markdown_summary.append(f"# {category}\n\n")
-            
-        # Add description as subheading
-        markdown_summary.append(f"## Topic Description\n\n{description}\n\n")
-    
-        # Add metadata block for the category
-        markdown_summary.append(f"Pieces of Content: {len(episode_batch)}\n\n")
-        markdown_summary.append(f"Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and [Kitces](https://www.kitces.com/)\n\n")
+
+        # Add category header and description to full markdown
+        markdown_full.append(f"# {category}\n\n")
+        markdown_full.append(f"## Topic Description\n\n{description}\n\n")
+        markdown_full.append(f"Pieces of Content: {len(episode_batch)}\n\n")
+        markdown_full.append(
+            "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and "
+            "[Kitces](https://www.kitces.com/)\n\n"
+        )
+
+        # Header section for summary markdown is the same
+        markdown_summary = markdown_full.copy()
         
         # Add episodes
         for episode in episode_batch:
-            # Episode title heading
-            markdown_summary.append(f"## {episode['title']}\n\n")
-            
-            # Build episode metadata
-            markdown_summary.append(f"Published date: {episode.get('published_date', 'N/A')}\n\n")
-            markdown_summary.append(f"Episode URL: {episode.get('url', 'N/A')}\n\n")
-            
-            if episode.get('popularity_percentile', -1) >= 0:
-                markdown_summary.append(f"Audience Popularity: popularity_to_tier({episode['popularity_percentile']})\n\n")
-
-            markdown_summary.append(f"Category relevance: {episode.get('category_relevance', 'N/A')}\n\n")
-            if episode.get('related_categories'):
-                markdown_summary.append("Related categories:\n\n")
-                for related_cat in episode['related_categories']:
-                    markdown_summary.append(f"- {related_cat}\n")
-                markdown_summary.append("\n")
-                        
-            if episode.get('summary'):
-                markdown_summary.append("### Summary\n\n")
-                for item in episode['summary']:
-                    markdown_summary.append(f"- {item}\n")
-                markdown_summary.append("\n")
-
-            markdown_full = markdown_summary.copy()
-            markdown_full.append("### Content\n\n")
-            for paragraph in episode['content']:
-                markdown_full.append(f"{paragraph}\n\n")
-        
-            markdown_full.append("---\n\n")
-        
-        # Write summary and full markdown to file
-        with open(full_path, 'w', encoding='utf-8') as f:
-            f.writelines(markdown_full)
+            append_episode_markdown(markdown_summary, episode, include_content=False)
+            append_episode_markdown(markdown_full, episode, include_content=True)
 
         with open(summary_path, 'w', encoding='utf-8') as f:
             f.writelines(markdown_summary)
+
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.writelines(markdown_full)
         
         # Get file size
         file_size_mb = os.path.getsize(full_path) / (1024 * 1024)
         word_count = sum(len(line.split()) for line in markdown_full)
-        # print(f"Generated {full_path} ({len(episode_batch)} episodes)...")
         if word_count > 200000:
             print(f"  ⚠ Warning: {category} exceeded word limit with {word_count:,} words")
         if file_size_mb > 200:
@@ -648,7 +664,7 @@ def main():
     sorted_stats = sorted(category_statistics, key=lambda x: x['WC'], reverse=True)
     
     # Print header
-    print(f"{'Category':<78} {'Episodes':>10} {'Words':>10}")
+    print(f"{'Topics':<78} {'Content':>10} {'Words':>10}")
     print("-" * 100)
     
     # Print each category with consistent column widths

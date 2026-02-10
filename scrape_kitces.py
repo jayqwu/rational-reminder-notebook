@@ -15,6 +15,7 @@ from urllib.parse import urlparse, urljoin, urlunparse
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+from url_cache import URLCache
 
 BEST_OF_URL = "https://www.kitces.com/best-of-posts/"
 OUTPUT_DIR = "output/kitces"
@@ -22,14 +23,14 @@ FAILED_URLS_FILE = "output/failed_kitces.json"
 DELAY_BETWEEN_REQUESTS = 0.5
 
 ALLOWED_CATEGORIES = {
-    "Annuities"
-    "Debt & Liabilities"
-    "Estate Planning"
-    "General Planning"
-    "Insurance"
-    "Investments"
-    "Retirement Planning"
-    "Taxes"
+    "annuities",
+    "debt & liabilities",
+    "estate planning",
+    "general planning",
+    "insurance",
+    "investments",
+    "retirement planning",
+    "taxes"
 }
 
 OUTRO_PREFIXES = [
@@ -55,6 +56,7 @@ def parse_args():
     parser.add_argument("--url", type=str, help="Scrape a single specific post URL")
     parser.add_argument("--retry-failed", action="store_true", help="Retry failed URLs")
     parser.add_argument("--failed-file", default=FAILED_URLS_FILE, help="Failed URLs JSON file")
+    parser.add_argument("--force", action="store_true", help="Force re-scrape even if URL is already cached")
     parser.add_argument("--debug", action="store_true", help="Debug mode: terminate on warnings")
     return parser.parse_args()
 
@@ -343,10 +345,30 @@ def create_filename_from_title(title, pub_date=None):
     return f"{cleaned}.json"
 
 
-def scrape_single(url):
+def scrape_single(url, url_cache=None, force_rescrape=False):
+    """Scrape a single article and save to file.
+    
+    Args:
+        url: URL of the article to scrape
+        url_cache: URLCache instance for tracking scraped URLs
+        force_rescrape: If True, scrape even if URL is already cached
+    
+    Returns:
+        Article data dict if successful, "FILTERED" if filtered out, "CACHED" if skipped, None on failure
+    """
+    # Check cache first (unless force_rescrape is enabled)
+    if url_cache and not force_rescrape:
+        if url_cache.is_cached(url):
+            if url_cache.is_filtered(url):
+                return "CACHED_FILTERED"
+            return "CACHED"
+    
     html = fetch_article(url)
     article = extract_article(html, url)
     if article == "FILTERED":
+        # Add filtered URL to cache so we don't check it again
+        if url_cache:
+            url_cache.add_filtered_url(url)
         return "FILTERED"
     if not article:
         return None
@@ -355,29 +377,58 @@ def scrape_single(url):
     output_path = os.path.join(OUTPUT_DIR, filename)
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(article, handle, ensure_ascii=False, indent=2)
+    
+    # Update cache
+    if url_cache:
+        url_cache.add_url(url, output_path)
+    
     return article
 
 
-def scrape_all(urls):
+def scrape_all(urls, url_cache=None, force_rescrape=False):
+    """Scrape all articles with progress tracking and rate limiting.
+    
+    Args:
+        urls: List of article URLs to scrape
+        url_cache: URLCache instance for tracking scraped URLs
+        force_rescrape: If True, scrape even if URLs are already cached
+    
+    Returns:
+        Tuple of (successful_articles, failed_urls)
+    """
     if not urls:
         print("No candidate URLs found.")
         return [], []
 
     successful = []
     failed = []
+    skipped_cached = 0
+    skipped_filtered = 0
+    skipped_previously_filtered = 0
 
     for url in tqdm(urls, desc="Scraping posts"):
-        article = scrape_single(url)
-        if article == "FILTERED":
-            # Silently skip articles that don't match allowed categories
-            pass
+        article = scrape_single(url, url_cache, force_rescrape)
+        if article == "CACHED":
+            skipped_cached += 1
+        elif article == "CACHED_FILTERED":
+            skipped_previously_filtered += 1
+        elif article == "FILTERED":
+            skipped_filtered += 1
         elif article:
             successful.append(article["title"])
         else:
             failed.append(url)
             handle_warning(f"Failed to scrape {url}")
-        if url != urls[-1]:
+        if url != urls[-1] and article not in ["CACHED", "CACHED_FILTERED", "FILTERED"]:
             time.sleep(DELAY_BETWEEN_REQUESTS)
+
+    print(f"\n✓ Successfully scraped: {len(successful)} articles")
+    if skipped_cached > 0:
+        print(f"⊘ Skipped (already cached): {skipped_cached} articles")
+    if skipped_previously_filtered > 0:
+        print(f"⊘ Skipped (previously filtered): {skipped_previously_filtered} articles")
+    if skipped_filtered > 0:
+        print(f"⊘ Skipped (filtered by category): {skipped_filtered} articles")
 
     return successful, failed
 
@@ -391,18 +442,34 @@ def main():
     print("Kitces Best Of Posts Scraper")
     if DEBUG_MODE:
         print("(Debug mode enabled - will terminate on warnings)")
+    if args.force:
+        print("(Force rescrape enabled - will overwrite cached URLs)")
     print("=" * 70)
+
+    # Initialize URL cache
+    url_cache = URLCache()
+    print(f"Loaded URL cache with {url_cache.get_cache_size()} entries\n")
 
     if args.url:
         print("Mode: Scraping single post")
         print(f"URL: {args.url}")
-        article = scrape_single(args.url)
-        if article:
-            filename = create_filename_from_title(article["title"], article.get("pub_date"))
-            print(f"Success: {article['title']}")
-            print(f"Saved to: {os.path.join(OUTPUT_DIR, filename)}")
+        article = scrape_single(args.url, url_cache, args.force)
+        if article == "CACHED":
+            print(f"\n⊘ Article already cached (use --force to re-scrape)")
             return 0
-        print("Failed to scrape post")
+        elif article == "CACHED_FILTERED":
+            print(f"\n⊘ Article previously filtered (use --force to re-check)")
+            return 0
+        elif article == "FILTERED":
+            print(f"\n⊘ Article filtered out (category not in allowed list)")
+            return 0
+        elif article:
+            filename = create_filename_from_title(article["title"], article.get("pub_date"))
+            print(f"\n✓ Success: {article['title']}")
+            print(f"Saved to: {os.path.join(OUTPUT_DIR, filename)}")
+            url_cache.save_cache()
+            return 0
+        print("\n✗ Failed to scrape post")
         return 1
 
     if args.retry_failed:
@@ -416,19 +483,23 @@ def main():
             print("Failed to load Best Of listing.")
             return 1
 
-    successful, failed = scrape_all(urls)
+    successful, failed = scrape_all(urls, url_cache, args.force)
+
+    # Save URL cache
+    url_cache.save_cache()
+    print(f"\n✓ URL cache updated ({url_cache.get_cache_size()} total entries)")
 
     if failed:
         save_failed_urls(failed, args.failed_file)
     elif os.path.exists(args.failed_file) and not args.retry_failed:
         os.remove(args.failed_file)
-        print(f"Cleared {args.failed_file} (no failures)")
+        print(f"✓ Cleared {args.failed_file} (no failures)")
 
-    if not successful:
-        print("No posts were successfully scraped.")
+    if not successful and not url_cache.get_cache_size():
+        print("\n✗ No posts were successfully scraped.")
         return 1
 
-    print("=" * 70)
+    print("\n" + "=" * 70)
     print("Process complete!")
     print(f"Articles saved in '{OUTPUT_DIR}/' directory")
     if failed:
