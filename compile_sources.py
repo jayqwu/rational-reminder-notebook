@@ -37,8 +37,8 @@ EXCLUDE_TITLES = [
 USE_FP16 = True
 BATCH_SIZE = 8
 # MODEL='Octen/Octen-Embedding-8B'
-MODEL='Octen/Octen-Embedding-4B'
-# MODEL='Octen/Octen-Embedding-0.6B'
+# MODEL='Octen/Octen-Embedding-4B'
+MODEL='Octen/Octen-Embedding-0.6B'
 # MODEL='nomic-ai/nomic-embed-text-v1.5'
 
 def load_taxonomy(path):
@@ -541,9 +541,12 @@ def main():
         print(f"✓ Wrote episode similarity matrix to {OUTPUT_SIMILARITIES_CSV}")
     
     # Generate markdown files for each category
-    OUTPUT_DIR = Path("output/categorized")
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    
+    FULL_OUTPUT_DIR = Path("output/categorized")
+    FULL_OUTPUT_DIR.mkdir(exist_ok=True)
+
+    SUMMARY_OUTPUT_DIR = Path("output/summaries")   
+    SUMMARY_OUTPUT_DIR.mkdir(exist_ok=True)
+
     # Track statistics for CSV output
     category_statistics = []
     
@@ -553,67 +556,72 @@ def main():
         
         # Create human-readable filename from category
         base_filename = category.replace("/", "-").replace(":", " -")
-        filepath = OUTPUT_DIR / f"{base_filename}.md"
+        full_path = FULL_OUTPUT_DIR / f"{base_filename}.md"
+        summary_path = SUMMARY_OUTPUT_DIR / f"Summary - {base_filename}.md"
         episode_batch = episodes
         
-        markdown_content = []
+        markdown_summary = []
         
         # Get description for this category
         description = category_to_description.get(category, "")
         
         # Add header first
-        markdown_content.append(f"# {category}\n\n")
+        markdown_summary.append(f"# {category}\n\n")
             
         # Add description as subheading
-        markdown_content.append(f"## Topic Description\n\n{description}\n\n")
+        markdown_summary.append(f"## Topic Description\n\n{description}\n\n")
     
         # Add metadata block for the category
-        markdown_content.append(f"Pieces of Content: {len(episode_batch)}\n\n")
-        markdown_content.append(f"Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and [Kitces](https://www.kitces.com/)\n\n")
+        markdown_summary.append(f"Pieces of Content: {len(episode_batch)}\n\n")
+        markdown_summary.append(f"Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and [Kitces](https://www.kitces.com/)\n\n")
         
         # Add episodes
         for episode in episode_batch:
             # Episode title heading
-            markdown_content.append(f"## {episode['title']}\n\n")
+            markdown_summary.append(f"## {episode['title']}\n\n")
             
             # Build episode metadata
-            markdown_content.append(f"Published date: {episode.get('published_date', 'N/A')}\n\n")
-            markdown_content.append(f"Episode URL: {episode.get('url', 'N/A')}\n\n")
+            markdown_summary.append(f"Published date: {episode.get('published_date', 'N/A')}\n\n")
+            markdown_summary.append(f"Episode URL: {episode.get('url', 'N/A')}\n\n")
             
             if episode.get('popularity_percentile', -1) >= 0:
-                markdown_content.append(f"Audience Popularity: popularity_to_tier({episode['popularity_percentile']})\n\n")
+                markdown_summary.append(f"Audience Popularity: popularity_to_tier({episode['popularity_percentile']})\n\n")
 
-            markdown_content.append(f"Category relevance: {episode.get('category_relevance', 'N/A')}\n\n")
+            markdown_summary.append(f"Category relevance: {episode.get('category_relevance', 'N/A')}\n\n")
             if episode.get('related_categories'):
-                markdown_content.append("Related categories:\n\n")
+                markdown_summary.append("Related categories:\n\n")
                 for related_cat in episode['related_categories']:
-                    markdown_content.append(f"- {related_cat}\n")
-                markdown_content.append("\n")
+                    markdown_summary.append(f"- {related_cat}\n")
+                markdown_summary.append("\n")
                         
             if episode.get('summary'):
-                markdown_content.append("### Summary\n\n")
+                markdown_summary.append("### Summary\n\n")
                 for item in episode['summary']:
-                    markdown_content.append(f"- {item}\n")
-                markdown_content.append("\n")
+                    markdown_summary.append(f"- {item}\n")
+                markdown_summary.append("\n")
 
-            markdown_content.append("### Content\n\n")
+            markdown_full = markdown_summary.copy()
+            markdown_full.append("### Content\n\n")
             for paragraph in episode['content']:
-                markdown_content.append(f"{paragraph}\n\n")
+                markdown_full.append(f"{paragraph}\n\n")
         
-            markdown_content.append("---\n\n")
+            markdown_full.append("---\n\n")
         
-        # Write to file
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.writelines(markdown_content)
+        # Write summary and full markdown to file
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.writelines(markdown_full)
+
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            f.writelines(markdown_summary)
         
         # Get file size
-        file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
-        word_count = sum(len(line.split()) for line in markdown_content)
-        # print(f"Generated {filepath} ({len(episode_batch)} episodes)...")
+        file_size_mb = os.path.getsize(full_path) / (1024 * 1024)
+        word_count = sum(len(line.split()) for line in markdown_full)
+        # print(f"Generated {full_path} ({len(episode_batch)} episodes)...")
         if word_count > 200000:
-            print(f"  ⚠ Warning: Exceeded word limit with {word_count:,} words")
+            print(f"  ⚠ Warning: {category} exceeded word limit with {word_count:,} words")
         if file_size_mb > 200:
-            print(f"  ⚠ Warning: Exceeded file size limit with {file_size_mb:.1f} MB")
+            print(f"  ⚠ Warning: {category} exceeded file size limit with {file_size_mb:.1f} MB")
         
         # Collect statistics for CSV
         if " - " in category:

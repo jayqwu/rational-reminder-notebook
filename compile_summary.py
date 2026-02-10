@@ -47,7 +47,7 @@ def load_youtube_metrics(metrics_file="output/youtube_metrics.csv"):
     return metrics_by_title
 
 
-def compile_key_topics(source_dirs=None, output_file="output/summary.md", min_percentile=None, metrics_file="output/youtube_metrics.csv"):
+def compile_key_topics(source_dirs=None, output_file="output/summaries/Full Summary.md", min_percentile=None, metrics_file="output/youtube_metrics.csv"):
     """
     Read all transcript JSON files and compile their titles and summary
     into a markdown file, optionally filtering by YouTube percentile threshold.
@@ -134,7 +134,7 @@ def compile_key_topics(source_dirs=None, output_file="output/summary.md", min_pe
     # Write to markdown file
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("# Summary from Sources\n\n")
-        f.write(f"Compiled from {len(posts)} posts across {len(source_dirs)} sources\n\n")
+        f.write(f"Compiled pieces of {len(posts)} content across {len(source_dirs)} sources\n\n")
         f.write("---\n\n")
         
         for episode in posts:
@@ -151,27 +151,27 @@ def compile_key_topics(source_dirs=None, output_file="output/summary.md", min_pe
             f.write("---\n\n")
     
     # Report results
-    print(f"Successfully compiled {len(posts)} posts to '{output_file}'")
+    print(f"Successfully compiled {len(posts)} pieces of content to '{output_file}'")
     if min_percentile is not None:
-        print(f"  (Filtered out {posts_filtered_out} posts below {min_percentile}th percentile)")
+        print(f"  (Filtered out {posts_filtered_out} pieces of content below {min_percentile}th percentile)")
 
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Compile key topics from transcript files"
+        description="Compile key topics from source files"
     )
     parser.add_argument(
         '--source-dir',
         action='append',
         dest='source_dirs',
-        help='Directory containing transcript JSON files (can be specified multiple times; default: output/rational_reminder and output/kitces)'
+        help='Directory containing source JSON files (can be specified multiple times; default: output/rational_reminder and output/kitces)'
     )
     parser.add_argument(
         '--output',
-        default='output/summary.md',
-        help='Output markdown file (default: output/summary.md)'
+        default='output/summaries/Full Summary.md',
+        help='Output markdown file (default: output/summaries/Full Summary.md)'
     )
     parser.add_argument(
         '--min-percentile',

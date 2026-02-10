@@ -22,12 +22,14 @@ FAILED_URLS_FILE = "output/failed_kitces.json"
 DELAY_BETWEEN_REQUESTS = 0.5
 
 ALLOWED_CATEGORIES = {
-    "cash flow/debt management",
-    "insurance",
-    "investments",
-    "retirement planning",
-    "taxes",
-    "estate planning",
+    "Annuities"
+    "Debt & Liabilities"
+    "Estate Planning"
+    "General Planning"
+    "Insurance"
+    "Investments"
+    "Retirement Planning"
+    "Taxes"
 }
 
 OUTRO_PREFIXES = [
