@@ -287,12 +287,20 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Categorize podcast transcripts filtered by popularity percentile"
     )
-    parser.add_argument(
+    
+    # Create mutually exclusive group for source selection
+    source_group = parser.add_mutually_exclusive_group()
+    source_group.add_argument(
+        "--rr-only",
+        action="store_true",
+        help="Only use content from The Rational Reminder podcast"
+    )
+    source_group.add_argument(
         "--source-dirs",
         nargs="+",
-        default=DEFAULT_SOURCE_DIRS,
         help=f"Source directories containing JSON files (default: {' '.join(DEFAULT_SOURCE_DIRS)})"
     )
+    
     parser.add_argument(
         "--min-percentile",
         type=float,
@@ -315,6 +323,12 @@ def main():
     args = parse_args()
 
     load_dotenv()
+
+    # Handle mutually exclusive source options
+    if args.rr_only:
+        args.source_dirs = ["output/rational_reminder"]
+    elif args.source_dirs is None:
+        args.source_dirs = DEFAULT_SOURCE_DIRS 
     
     # Load taxonomy
     print("Loading taxonomy...")
@@ -391,7 +405,7 @@ def main():
             f"{entry['category']} - {entry['subcategory']}": entry['description']
             for entry in taxonomy
         }
-        
+
         # Collect all JSON files from all source directories
         episode_files = []
         for source_dir in args.source_dirs:
@@ -631,10 +645,16 @@ def main():
         markdown_full.append(f"# {category}\n\n")
         markdown_full.append(f"## Topic Description\n\n{description}\n\n")
         markdown_full.append(f"Pieces of Content: {len(episode_batch)}\n\n")
-        markdown_full.append(
-            "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and "
-            "[Kitces](https://www.kitces.com/)\n\n"
-        )
+        
+        if args.rr_only:
+            markdown_full.append(
+                "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/)\n\n"
+            )
+        else:
+            markdown_full.append(
+                "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and "
+                "[Kitces](https://www.kitces.com/)\n\n"
+            )
 
         # Header section for summary markdown is the same
         markdown_summary = markdown_full.copy()
