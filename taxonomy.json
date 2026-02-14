@@ -16,7 +16,7 @@
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "Regret Aversion and FOMO",
+    "subcategory": "Regret Aversion & FOMO",
     "description": "This topic focuses on the emotional drivers of \"Fear Of Missing Out\" (FOMO) and regret, particularly regarding speculative assets like cryptocurrency or individual stock picks. It discusses how the fear of regret can lead to poor portfolio construction, such as concentration risk, and how optimizing for \"least regret\" is often a more practical behavioral strategy than optimizing for maximum mathematical return."
   },
   {
@@ -26,7 +26,7 @@
   },
   {
     "category": "Behavioral Finance",
-    "subcategory": "The Psychology of Happiness and Wealth",
+    "subcategory": "The Psychology of Happiness & Wealth",
     "description": "This topic explores the disconnect between accumulating money and achieving life satisfaction, referencing concepts like the \"hedonic treadmill\" and \"funded contentment.\" It covers research suggesting that once basic needs are met, increased income has diminishing returns on happiness, and emphasizes the importance of aligning spending with personal values, experiences, and social connection rather than material goods or status."
   },
   {
@@ -46,7 +46,7 @@
   },
   {
     "category": "Financial Planning",
-    "subcategory": "Estate Planning and Wealth Transfer",
+    "subcategory": "Estate Planning & Wealth Transfer",
     "description": "This topic addresses the logistics of transferring wealth, including the use of wills, trusts, and beneficiary designations to avoid probate and minimize taxes. It covers the \"step-up in basis\" rules for inherited assets, the implications of the SECURE Act on inherited IRAs, and strategies for intergenerational wealth transfer that consider the preparedness of heirs to handle sudden wealth."
   },
   {
@@ -56,7 +56,7 @@
   },
   {
     "category": "Financial Planning",
-    "subcategory": "Life Insurance and Risk Management",
+    "subcategory": "Life Insurance & Risk Management",
     "description": "This topic covers the evaluation of term versus permanent life insurance, analyzing when permanent policies (whole life, universal life) make sense as an asset class versus when they are sold unnecessarily. It includes discussions on the mechanics of policy loans, the risks of lapsing policies, and the necessity of disability and long-term care insurance to protect human capital and retirement assets."
   },
   {
@@ -81,7 +81,7 @@
   },
   {
     "category": "Household Finances",
-    "subcategory": "Family and Money Dynamics",
+    "subcategory": "Family & Money Dynamics",
     "description": "This topic addresses the interpersonal aspects of finance, including managing money in relationships, deciding whether to merge finances, and teaching children about money. It covers the challenges of wealth disparity between spouses, the \"wealth 3.0\" approach to parenting, and avoiding the \"shirtsleeves to shirtsleeves\" phenomenon in intergenerational wealth."
   },
   {
@@ -126,7 +126,7 @@
   },
   {
     "category": "Investing",
-    "subcategory": "Fixed Income and Bond Markets",
+    "subcategory": "Fixed Income & Bond Markets",
     "description": "This topic analyzes the role of bonds in a portfolio, distinguishing between their use for income generation versus volatility reduction. It covers the mechanics of yield curves, duration risk, credit spreads, and the historical performance of bonds during inflationary periods, arguing against the notion that bonds are \"dead\" during low-yield environments."
   },
   {
@@ -141,7 +141,7 @@
   },
   {
     "category": "Investing",
-    "subcategory": "Private Equity and Alternative Assets",
+    "subcategory": "Private Equity & Alternative Assets",
     "description": "This topic examines the allure of private markets, hedge funds, and private credit. It discusses the \"volatility laundering\" effect where illiquid assets appear stable due to infrequent pricing, and questions whether the net-of-fee returns for retail investors in private equity actually justify the illiquidity and complexity compared to public market equivalents."
   },
   {
@@ -156,7 +156,7 @@
   },
   {
     "category": "Investing",
-    "subcategory": "Thematic and Sector ETFs",
+    "subcategory": "Thematic & Sector ETFs",
     "description": "This topic critiques the rise of \"ETF slop\"—narrowly defined thematic funds (e.g., AI, marijuana, work-from-home) that often launch at the peak of a hype cycle. It explains why investing in technological revolutions often leads to poor returns due to high valuations and competition, and why broad diversification is superior to betting on specific sectors."
   },
   {
@@ -186,7 +186,7 @@
   },
   {
     "category": "Portfolio Management",
-    "subcategory": "Sustainable and ESG Portfolio Construction",
+    "subcategory": "Sustainable & ESG Portfolio Construction",
     "description": "This topic looks at integrating Environmental, Social, and Governance factors into portfolio construction. It discusses the trade-off between expressing values and expected returns (as \"sin stocks\" often have higher costs of capital and higher returns), the problem of \"greenwashing,\" and the difference between divestment and shareholder engagement."
   },
   {
@@ -206,7 +206,7 @@
   },
   {
     "category": "Retirement",
-    "subcategory": "Retirement Transition and Identity",
+    "subcategory": "Retirement Transition & Identity",
     "description": "This topic explores the non-financial aspects of retiring, such as the loss of work identity and social structure. It emphasizes that a successful retirement requires \"retiring to\" something (purpose, hobbies, volunteering) rather than just \"retiring from\" work, and warns against the depression and aimlessness that can accompany a lack of structure."
   },
   {
