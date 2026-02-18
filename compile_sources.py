@@ -13,6 +13,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
 import shutil
+import re
 
 DEFAULT_SOURCE_DIRS = ["output/rational_reminder", "output/kitces"]
 METRICS_FILE = "output/youtube_metrics.csv"
@@ -26,6 +27,9 @@ SIMILARITY_VERY_HIGH = 0.5
 SIMILARITY_HIGH = 0.4
 SIMILARITY_AVERAGE = 0.3
 SIMILARITY_LOW = 0.2
+
+# Minimum number of words in a content paragraph to appending episode number for citation purposes
+CITATION_LEN = 35
 
 # Weights for combining title and summary similarities (can be tuned)
 WEIGHT_TITLE = 0.20
@@ -162,6 +166,16 @@ def append_episode_markdown(target, episode, include_content=False):
     target.append(f"Published date: {episode.get('published_date', 'N/A')}\n\n")
     target.append(f"Episode URL: {episode.get('url', 'N/A')}\n\n")
 
+    # Extract episode number in the format "Ep. #"
+    episode_title = episode.get('title', '')
+    match = re.search(r'\bEpisode (\d+)', episode_title)
+    if match:
+        episode_number = f"Ep. {match.group(1)}"
+    else:
+        match = re.search(r'\bUnderstanding Crypto (\d+)', episode_title)
+        if match:
+            episode_number = f"UC {match.group(1)}"
+
     if episode.get('popularity_percentile', -1) >= 0:
         target.append(
             f"Audience Popularity: popularity_to_tier({episode['popularity_percentile']})\n\n"
@@ -183,6 +197,8 @@ def append_episode_markdown(target, episode, include_content=False):
     if include_content:
         target.append("### Content\n\n")
         for paragraph in episode['content']:
+            if len(paragraph.split()) > CITATION_LEN and 'episode_number' in locals():
+                paragraph += f" ({episode_number})"
             target.append(f"{paragraph}\n\n")
 
     target.append("---\n\n")
