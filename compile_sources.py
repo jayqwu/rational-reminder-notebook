@@ -169,12 +169,12 @@ def append_episode_markdown(target, episode, include_content=False):
     # Extract episode number in the format "Ep. #"
     episode_title = episode.get('title', '')
     match = re.search(r'\bEpisode (\d+)', episode_title)
-    if match:
-        episode_number = f"Ep. {match.group(1)}"
-    else:
-        match = re.search(r'\bUnderstanding Crypto (\d+)', episode_title)
+    citation = None
+    for pattern, prefix in [(r'\bEpisode (\d+)', "Ep."), (r'\bUnderstanding Crypto (\d+)', "UC")]:
+        match = re.search(pattern, episode_title)
         if match:
-            episode_number = f"UC {match.group(1)}"
+            citation = f"{prefix} {match.group(1)}"
+            break
 
     if episode.get('popularity_percentile', -1) >= 0:
         target.append(
@@ -197,8 +197,8 @@ def append_episode_markdown(target, episode, include_content=False):
     if include_content:
         target.append("### Content\n\n")
         for paragraph in episode['content']:
-            if len(paragraph.split()) > CITATION_LEN and 'episode_number' in locals():
-                paragraph += f" ({episode_number})"
+            if len(paragraph.split()) > CITATION_LEN and citation:
+                paragraph += f" ({citation})"
             target.append(f"{paragraph}\n\n")
 
     target.append("---\n\n")
