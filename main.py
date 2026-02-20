@@ -8,6 +8,7 @@ Usage:
     python main.py --help                      # Show all options
     python main.py --force                     # Force re-scrape even if URLs are cached
     python main.py --scrape-retry-failed       # Retry failed episodes during scrape
+    python main.py --rr-only                   # Categorize only Rational Reminder episodes
     python main.py --min-percentile 50         # Use different percentile threshold
     python main.py --skip-categorize           # Skip categorization
 """
@@ -55,6 +56,11 @@ def parse_args():
         "--skip-categorize",
         action="store_true",
         help="Skip the categorization step"
+    )
+    parser.add_argument(
+        "--rr-only",
+        action="store_true",
+        help="Only use Rational Reminder episodes for categorization"
     )
     parser.add_argument(
         "--min-percentile",
@@ -118,10 +124,14 @@ def main():
         if args.scrape_retry_failed:
             rr_cmd.append("--retry-failed")
             kitces_cmd.append("--retry-failed")
-        scrape_steps = [
-            ("Rational Reminder", rr_cmd),
-            ("Kitces", kitces_cmd),
-        ]
+
+        if args.rr_only:
+            scrape_steps = [("Rational Reminder", rr_cmd)]
+        else:
+            scrape_steps = [
+                ("Rational Reminder", rr_cmd),
+                ("Kitces", kitces_cmd),
+            ]
 
     # Add --force flag to all scrape commands if specified
     if args.force:
@@ -153,7 +163,9 @@ def main():
     # Step 3: Categorization
     if not args.skip_categorize:
         categorize_cmd = ["python", "compile_sources.py"]
-        if args.min_percentile != -1:
+        if args.rr_only:
+            categorize_cmd.append("--rr-only")
+        if args.min_percentile >-1:
             categorize_cmd.extend(["--min-percentile", str(args.min_percentile)])
         
         if run_command("Categorizing episodes", categorize_cmd):
@@ -167,7 +179,7 @@ def main():
 
     # Step 4: Summary
     summary_cmd = ["python", "compile_summary.py"]
-    if args.min_percentile != -1:
+    if args.min_percentile >-1:
         summary_cmd.extend(["--min-percentile", str(args.min_percentile)])
 
     if run_command("Compiling summary", summary_cmd):
