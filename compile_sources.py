@@ -409,14 +409,15 @@ def parse_args():
         help=f"YouTube metrics CSV file (default: {METRICS_FILE})"
     )
     parser.add_argument(
-        "--use-cache",
+        "--recategorize",
         action="store_true",
-        help="Skip categorization and regenerate markdown from cached categorization (faster)"
+        help="Force recategorization for all filtered episodes using semantic similarity"
     )
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    use_cache = not args.recategorize
 
     load_dotenv()
 
@@ -507,7 +508,7 @@ def main():
     cached_taxonomy_hash = ""
     taxonomy_changed = False
 
-    if args.use_cache:
+    if use_cache:
         print(f"Loading category match cache from {CACHE_FILE}...")
         cache_blob = load_match_cache(CACHE_FILE)
         cache_matches = cache_blob["matches"]
@@ -520,17 +521,20 @@ def main():
 
         print(f"✓ Loaded {len(cache_matches)} cached episode-category matches\n")
     else:
-        print("Cache reuse disabled; matching all filtered episodes.")
+        print("Forced recategorization enabled; matching all filtered episodes.")
 
     categorized_episodes = defaultdict(list)
     episode_matches = []
 
     episodes_reused_from_cache = 0
     episodes_to_match = []
+    newly_matched_topics = set()
 
     for item in filtered_episode_data:
         cache_key = item["cache_key"]
-        cached_match = cache_matches.get(cache_key) if args.use_cache else None
+        cached_match = cache_matches.get(cache_key) if use_cache else None
+
+        item["is_new_match"] = False
 
         if cached_match:
             matched_category = cached_match["category"]
@@ -548,6 +552,8 @@ def main():
             item["category_relevance"] = cached_match.get("category_relevance", "Cached")
             item["related_categories"] = cached_match.get("related_categories", [])
         else:
+            if use_cache:
+                item["is_new_match"] = True
             episodes_to_match.append(item)
 
     model = None
@@ -609,6 +615,9 @@ def main():
             item["category_relevance"] = similarity_to_relevance(similarity_score)
             item["related_categories"] = related_categories
 
+            if item.get("is_new_match"):
+                newly_matched_topics.add(category_label)
+
             cache_matches[item["cache_key"]] = {
                 "category": matched_category,
                 "subcategory": matched_subcategory,
@@ -654,8 +663,15 @@ def main():
     print(f"  episodes after filtering: {len(filtered_episode_data)}")
     print(f"  reused from cache: {episodes_reused_from_cache}")
     print(f"  newly matched: {len(episodes_to_match)}")
-    if args.use_cache and taxonomy_changed:
+    if use_cache and taxonomy_changed:
         print("  rematch reason: taxonomy changed")
+    if use_cache:
+        if newly_matched_topics:
+            print("  topics with newly matched episodes:")
+            for topic in sorted(newly_matched_topics):
+                print(f"    - {topic}")
+        else:
+            print("  topics with newly matched episodes: none")
 
     print(f"Saving category match cache to {CACHE_FILE}...")
     save_match_cache(CACHE_FILE, current_taxonomy_hash, cache_matches)
