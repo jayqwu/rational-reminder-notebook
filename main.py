@@ -11,6 +11,7 @@ Usage:
     python main.py --rr-only                   # Categorize only Rational Reminder episodes
     python main.py --min-percentile 50         # Use different percentile threshold
     python main.py --skip-categorize           # Skip categorization
+    python main.py --skip-upload               # Skip upload to Google Docs
 """
 
 import argparse
@@ -67,6 +68,18 @@ def parse_args():
         type=float,
         default=-1,
         help="Minimum percentile threshold for including episodes (default: off)"
+    )
+
+    # Upload options
+    parser.add_argument(
+        "--skip-upload",
+        action="store_true",
+        help="Skip uploading updated sources to Google Docs"
+    )
+    parser.add_argument(
+        "--upload-all-sources",
+        action="store_true",
+        help="Upload all markdown sources instead of only newly updated ones"
     )
     
     return parser.parse_args()
@@ -189,6 +202,21 @@ def main():
     else:
         print("\nPipeline aborted.")
         return 1
+
+    # Step 5: Upload to Google Docs
+    if not args.skip_upload:
+        upload_cmd = ["python", "upload_to_google_docs.py"]
+        if args.upload_all_sources:
+            upload_cmd.append("--all-sources")
+
+        if run_command("Uploading updated sources to Google Docs", upload_cmd):
+            steps_completed.append("Upload")
+        else:
+            print("\nPipeline aborted.")
+            return 1
+    else:
+        print("\n⊘ Skipped: Upload (--skip-upload)")
+        steps_skipped.append("Upload")
     
     # Summary
     print("\n" + "="*70)

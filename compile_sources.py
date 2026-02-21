@@ -326,7 +326,7 @@ def load_match_cache(path):
         "matches": matches,
     }
 
-def save_match_cache(path, taxonomy_hash, matches):
+def save_match_cache(path, taxonomy_hash, matches, updated_topics=None):
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if path.exists():
@@ -338,6 +338,9 @@ def save_match_cache(path, taxonomy_hash, matches):
         cache_data = {}
 
     cache_data["_taxonomy_hash"] = taxonomy_hash
+    if updated_topics is None:
+        updated_topics = []
+    cache_data["needs_upload"] = sorted(set(updated_topics))
 
     for cache_key, match_data in matches.items():
         normalized_key = normalize_cache_url(cache_key)
@@ -673,10 +676,6 @@ def main():
         else:
             print("  topics with newly matched episodes: none")
 
-    print(f"Saving category match cache to {CACHE_FILE}...")
-    save_match_cache(CACHE_FILE, current_taxonomy_hash, cache_matches)
-    print("✓ Cache saved\n")
-
     OUTPUT_MATCHES_CSV.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_MATCHES_CSV, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["title", "category", "subcategory"])
@@ -692,6 +691,17 @@ def main():
 
     # Track statistics for CSV output
     category_statistics = []
+
+    if not use_cache or taxonomy_changed:
+        topics_to_update = set(categorized_episodes.keys())
+    else:
+        topics_to_update = set(newly_matched_topics)
+
+    print(f"Topics flagged for updates: {len(topics_to_update)}")
+
+    print(f"Saving category match cache to {CACHE_FILE}...")
+    save_match_cache(CACHE_FILE, current_taxonomy_hash, cache_matches, topics_to_update)
+    print("✓ Cache saved\n")
     
     for category, episodes in categorized_episodes.items():
         # Sort episodes by similarity score (highest first)
@@ -732,11 +742,12 @@ def main():
             append_episode_markdown(markdown_summary, episode, include_content=False)
             append_episode_markdown(markdown_full, episode, include_content=True)
 
-        with open(summary_path, 'w', encoding='utf-8') as f:
-            f.writelines(markdown_summary)
+        if category in topics_to_update:
+            with open(summary_path, 'w', encoding='utf-8') as f:
+                f.writelines(markdown_summary)
 
-        with open(full_path, 'w', encoding='utf-8') as f:
-            f.writelines(markdown_full)
+            with open(full_path, 'w', encoding='utf-8') as f:
+                f.writelines(markdown_full)
         
         # Get file size
         file_size_mb = os.path.getsize(full_path) / (1024 * 1024)

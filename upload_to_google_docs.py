@@ -3,8 +3,8 @@
 
 import argparse
 import os
-import json
 import re
+import json
 import base64
 import pickle
 from io import BytesIO
@@ -25,6 +25,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 CREDENTIALS_FILE = Path("credentials.json")
 ENV_FILE = Path(".env")
 MARKDOWN_DIR = Path("output/categorized")
+CACHE_FILE = Path("output/cache.json")
 
 def authenticate_google_drive():
     """Authenticate with Google Drive API using OAuth2."""
@@ -194,6 +195,74 @@ def check_existing_docs(service, folder_id):
     existing_docs = {item['name']: item['id'] for item in results.get('files', [])}
     return existing_docs
 
+
+def load_cache_data(cache_path):
+    if not cache_path.exists():
+        return {}
+    with open(cache_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return data if isinstance(data, dict) else {}
+
+
+def save_cache_data(cache_path, cache_data):
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(cache_path, 'w', encoding='utf-8') as f:
+        json.dump(cache_data, f, indent=2)
+
+
+def clear_needs_upload(cache_path, uploaded_topics, failed_topics):
+    """Clear needs_upload entries that were uploaded successfully."""
+    cache_data = load_cache_data(cache_path)
+    needs_upload = cache_data.get('needs_upload', [])
+    if not isinstance(needs_upload, list):
+        needs_upload = []
+
+    uploaded_set = set(uploaded_topics)
+    failed_set = set(failed_topics)
+    remaining = [
+        topic for topic in needs_upload
+        if topic in failed_set or topic not in uploaded_set
+    ]
+
+    cache_data['needs_upload'] = sorted(set(remaining))
+    if '_newly_matched_topics' in cache_data:
+        del cache_data['_newly_matched_topics']
+    save_cache_data(cache_path, cache_data)
+
+
+def load_updated_markdown_files(source_dir, cache_path):
+    """Load only changed markdown files from cache metadata produced by compile_sources.py."""
+    if not cache_path.exists():
+        print(f"No cache file found at: {cache_path}")
+        return [], []
+
+    with open(cache_path, 'r', encoding='utf-8') as f:
+        cache_data = json.load(f)
+
+    if not isinstance(cache_data, dict):
+        print(f"Invalid cache format in {cache_path}")
+        return [], []
+
+    updated_topics = cache_data.get('needs_upload', [])
+    if not isinstance(updated_topics, list):
+        print(f"Invalid needs_upload field in {cache_path}")
+        return [], []
+
+    markdown_files = []
+    selected_topics = []
+    for topic in updated_topics:
+        if not isinstance(topic, str):
+            continue
+        name = topic.replace("/", "-").replace(":", " -") + ".md"
+        file_path = source_dir / name
+        if file_path.exists() and file_path.suffix.lower() == '.md':
+            markdown_files.append(file_path)
+            selected_topics.append(topic)
+        else:
+            print(f"Warning: Skipping missing/non-markdown file from topic: {topic}")
+
+    return sorted(markdown_files), sorted(set(selected_topics))
+
 def main():
     parser = argparse.ArgumentParser(
         description="Upload compiled markdown files to Google Docs"
@@ -209,6 +278,17 @@ def main():
         type=Path,
         default=CREDENTIALS_FILE,
         help="Path to Google OAuth2 credentials JSON file"
+    )
+    parser.add_argument(
+        "--cache-file",
+        type=Path,
+        default=CACHE_FILE,
+        help=f"Path to cache file (default: {CACHE_FILE})"
+    )
+    parser.add_argument(
+        "--all-sources",
+        action="store_true",
+        help="Upload all markdown files from source-dir instead of only updated ones"
     )
     
     args = parser.parse_args()
@@ -230,9 +310,19 @@ def main():
         print(f"Error: Source directory not found: {source_dir}")
         return
     
-    markdown_files = sorted(source_dir.glob("*.md"))
+    if args.all_sources:
+        markdown_files = sorted(source_dir.glob("*.md"))
+        selected_topics = []
+        print("Using all markdown files from source directory")
+    else:
+        markdown_files, selected_topics = load_updated_markdown_files(source_dir, args.cache_file)
+        print(f"Using updated topics from cache: {args.cache_file}")
     
     print(f"Found {len(markdown_files)} markdown files to upload\n")
+
+    if not markdown_files:
+        print("No files to upload. Exiting.")
+        return
     
     # Check for existing documents
     print("Checking for existing documents...")
@@ -241,6 +331,13 @@ def main():
     upload_results = []
     failed_uploads = []
     updated_uploads = []
+    failed_topics = set()
+    successful_topics = set()
+
+    topic_by_stem = {
+        topic.replace("/", "-").replace(":", " -"): topic
+        for topic in selected_topics
+    }
     
     for markdown_file in tqdm(markdown_files, desc="Uploading to Google Docs"):
         doc_name = markdown_file.stem
@@ -265,26 +362,19 @@ def main():
                     'url': doc_url,
                     'size_mb': round(file_size, 2)
                 })
+
+            topic = topic_by_stem.get(doc_name)
+            if topic:
+                successful_topics.add(topic)
         except Exception as e:
             failed_uploads.append({
                 'file': markdown_file.name,
                 'error': str(e)
             })
             print(f"\n✗ Failed to upload {markdown_file.name}: {e}")
-    
-    # Save results
-    results_file = Path("output/google_docs_uploads.json")
-    results_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    results_data = {
-        'folder_id': folder_id,
-        'uploaded': upload_results,
-        'updated': updated_uploads,
-        'failed': failed_uploads
-    }
-    
-    with open(results_file, 'w', encoding='utf-8') as f:
-        json.dump(results_data, f, indent=2)
+            topic = topic_by_stem.get(doc_name)
+            if topic:
+                failed_topics.add(topic)
     
     # Print summary
     print("\n" + "="*95)
@@ -303,9 +393,19 @@ def main():
     if total_uploaded > 0:
         total_size = sum(doc['size_mb'] for doc in upload_results + updated_uploads)
         print(f"\nTotal processed: {total_size:.2f} MB")
+
+    if not args.all_sources:
+        clear_needs_upload(
+            args.cache_file,
+            uploaded_topics=successful_topics,
+            failed_topics=failed_topics,
+        )
+        if failed_topics:
+            print(f"Remaining topics in needs_upload (failed): {len(failed_topics)}")
+        else:
+            print("Cleared needs_upload after successful upload")
     
     print(f"\nGoogle Drive folder: https://drive.google.com/drive/folders/{folder_id}")
-    print(f"Results saved to: {results_file}")
 
 if __name__ == "__main__":
     main()
