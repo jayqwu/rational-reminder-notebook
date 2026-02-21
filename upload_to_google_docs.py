@@ -93,47 +93,6 @@ def get_or_create_upload_folder(service):
     
     return folder_id
 
-def markdown_to_plain_text(markdown_text):
-    """
-    Convert markdown to plain text while preserving structure and readability.
-    
-    This removes markdown syntax but preserves the content and adds visual separators
-    for better readability in Google Docs.
-    
-    Args:
-        markdown_text: The markdown content as string
-    
-    Returns:
-        Plain text with preserved structure
-    """
-    text = markdown_text
-    
-    # Remove markdown link syntax [text](url) -> text (url)
-    text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'\1 (\2)', text)
-    
-    # Convert bold **text** -> text (keep content, remove markers)
-    text = re.sub(r'\*\*([^\*]+)\*\*', r'\1', text)
-    
-    # Convert italics *text* -> text
-    text = re.sub(r'\*([^\*]+)\*', r'\1', text)
-    
-    # Convert headers # Text -> Text with extra line breaks for visual separation
-    text = re.sub(r'^# ', '\n', text, flags=re.MULTILINE)
-    text = re.sub(r'^## ', '\n', text, flags=re.MULTILINE)
-    text = re.sub(r'^### ', '\n', text, flags=re.MULTILINE)
-    text = re.sub(r'^#### ', '\n', text, flags=re.MULTILINE)
-    
-    # Convert bullet points - keep the dash with proper indentation
-    # Already preserved in markdown, just ensure proper line breaks
-    
-    # Remove excessive blank lines (more than 2 consecutive)
-    text = re.sub(r'\n\n\n+', '\n\n', text)
-    
-    # Trim leading/trailing whitespace
-    text = text.strip()
-    
-    return text
-
 def upload_markdown_file(service, file_path, parent_folder_id):
     """
     Upload a markdown file to Google Docs.
@@ -158,18 +117,15 @@ def upload_markdown_file(service, file_path, parent_folder_id):
         'parents': [parent_folder_id]
     }
     
-    # Convert markdown to plain text while preserving structure
-    doc_content = markdown_to_plain_text(content)
-    
     # Create a temporary text file for upload
     temp_file = f"/tmp/{file_path.stem}_{os.getpid()}.txt"
     with open(temp_file, 'w', encoding='utf-8') as f:
-        f.write(doc_content)
+        f.write(content)
     
     try:
         # Upload with plain text mimetype
         # Google Drive will convert this to a Google Doc automatically
-        media = MediaFileUpload(temp_file, mimetype='text/plain', resumable=True)
+        media = MediaFileUpload(temp_file, mimetype='text/markdown', resumable=True)
         
         doc = service.files().create(
             body=file_metadata,
@@ -202,17 +158,14 @@ def update_markdown_file(service, file_path, doc_id):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Convert markdown to plain text while preserving structure
-    doc_content = markdown_to_plain_text(content)
-    
     # Create a temporary text file for upload
     temp_file = f"/tmp/{file_path.stem}_{os.getpid()}.txt"
     with open(temp_file, 'w', encoding='utf-8') as f:
-        f.write(doc_content)
+        f.write(content)
     
     try:
         # Update the existing document with new content
-        media = MediaFileUpload(temp_file, mimetype='text/plain', resumable=True)
+        media = MediaFileUpload(temp_file, mimetype='text/markdown', resumable=True)
         
         doc = service.files().update(
             fileId=doc_id,
