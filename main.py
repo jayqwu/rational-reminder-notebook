@@ -205,7 +205,7 @@ def main():
 
     # Step 5: Upload to Google Docs
     if not args.skip_upload:
-        upload_cmd = ["python", "upload_to_google_docs.py"]
+        upload_cmd = ["python", "upload_to_drive.py"]
         if args.upload_all_sources:
             upload_cmd.append("--all-sources")
 
