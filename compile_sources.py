@@ -5,6 +5,7 @@ import argparse
 import csv
 import json
 import os
+import hashlib
 from dotenv import load_dotenv
 import torch
 from datetime import datetime
@@ -14,6 +15,7 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
 import shutil
 import re
+from urllib.parse import urlsplit, urlunsplit
 
 DEFAULT_SOURCE_DIRS = ["output/rational_reminder", "output/kitces"]
 METRICS_FILE = "output/youtube_metrics.csv"
@@ -49,6 +51,8 @@ EXCLUDE_TITLES = [
 USE_FP16 = True
 BATCH_SIZE = 8
 MODEL='Octen/Octen-Embedding-0.6B'
+
+CACHE_SCHEMA_VERSION = 1
 
 def load_taxonomy(path):
     """Load taxonomy from JSON file.
@@ -268,6 +272,82 @@ def _format_published_date(value):
         return ""
     return parsed.date().isoformat()
 
+def _normalize_url_for_cache(value):
+    if not value:
+        return None
+    try:
+        parsed = urlsplit(str(value).strip())
+    except Exception:
+        return None
+    if not parsed.netloc:
+        return None
+    normalized = parsed._replace(
+        scheme=parsed.scheme.lower(),
+        netloc=parsed.netloc.lower(),
+        query="",
+        fragment="",
+    )
+    normalized_url = urlunsplit(normalized).rstrip("/")
+    return normalized_url or None
+
+def _build_episode_cache_key(data, episode_file):
+    source_url = _normalize_url_for_cache(data.get("url"))
+    if source_url:
+        return f"url::{source_url}"
+    raise ValueError(f"Episode missing valid URL for cache key: {episode_file}")
+
+def _taxonomy_hash(taxonomy):
+    serialized = json.dumps(taxonomy, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+def load_match_cache(path):
+    if not path.exists():
+        return {
+            "schema_version": CACHE_SCHEMA_VERSION,
+            "taxonomy_hash": "",
+            "matches": {},
+        }
+
+    with open(path, 'r', encoding='utf-8') as f:
+        cache_data = json.load(f)
+
+    if not isinstance(cache_data, dict):
+        raise ValueError("Cache file must be a JSON object with schema_version, taxonomy_hash, and matches")
+
+    if cache_data.get("schema_version") != CACHE_SCHEMA_VERSION:
+        raise ValueError(
+            f"Cache schema mismatch in {path}: expected schema_version={CACHE_SCHEMA_VERSION}"
+        )
+
+    taxonomy_hash = cache_data.get("taxonomy_hash")
+    matches = cache_data.get("matches")
+    if not isinstance(taxonomy_hash, str) or not isinstance(matches, dict):
+        raise ValueError("Cache file must include string taxonomy_hash and object matches")
+
+    for episode_key, match_data in matches.items():
+        if not isinstance(episode_key, str) or not isinstance(match_data, dict):
+            raise ValueError("Each cache match entry must be an object keyed by episode identifier")
+        if "category" not in match_data or "subcategory" not in match_data:
+            raise ValueError("Each cache match must include category and subcategory")
+        if "related_categories" in match_data and not isinstance(match_data["related_categories"], list):
+            raise ValueError("related_categories in cache must be a list when provided")
+
+    return {
+        "schema_version": CACHE_SCHEMA_VERSION,
+        "taxonomy_hash": taxonomy_hash,
+        "matches": matches,
+    }
+
+def save_match_cache(path, taxonomy_hash, matches):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cache_data = {
+        "schema_version": CACHE_SCHEMA_VERSION,
+        "taxonomy_hash": taxonomy_hash,
+        "matches": matches,
+    }
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(cache_data, f, indent=2)
+
 def load_percentile_map(metrics_file):
     """Load video_id to percentile mapping from CSV file."""
     percentile_map = {}
@@ -346,48 +426,128 @@ def main():
     print(f"Loading popularity metrics from {args.metrics_file}...")
     percentile_map = load_percentile_map(args.metrics_file)
     print(f"✓ Loaded percentiles for {len(percentile_map)} videos\n")
-    
-    # Check if using cache
-    if args.use_cache:
-        if not CACHE_FILE.exists():
-            print(f"Error: Cache file not found: {CACHE_FILE}")
-            print("Run without --use-cache to perform categorization first.")
-            return
-        print(f"Loading categorization from cache: {CACHE_FILE}\n")
-        with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-            cache_data = json.load(f)
-        
-        # Apply percentile filtering to cached episodes
-        categorized_episodes = defaultdict(list)
-        total_cached = 0
-        episodes_filtered_from_cache = 0
-        
-        for category, episodes in cache_data.items():
-            for episode in episodes:
-                total_cached += 1
-                
-                # Apply min-percentile filter
-                percentile = episode.get('percentile', -1.0)
-                if percentile >= 0 and percentile < args.min_percentile:
-                    episodes_filtered_from_cache += 1
-                    continue
-                
-                categorized_episodes[category].append(episode)
-        
-        category_to_description = {
-            f"{entry['category']} - {entry['subcategory']}": entry['description']
-            for entry in taxonomy
-        }
-        
-        episodes_kept = sum(len(eps) for eps in categorized_episodes.values())
-        print(f"✓ Loaded {total_cached} episodes from cache")
-        if args.min_percentile > -1.0:
-            print(f"  Applied percentile filter: kept {episodes_kept}, filtered out {episodes_filtered_from_cache}")
-        print()
+
+    # Create category label to description mapping
+    category_to_description = {
+        f"{entry['category']} - {entry['subcategory']}": entry['description']
+        for entry in taxonomy
+    }
+
+    # Collect all JSON files from all source directories
+    episode_files = []
+    for source_dir in args.source_dirs:
+        source_path = Path(source_dir)
+        if source_path.exists():
+            dir_files = sorted(source_path.glob("*.json"))
+            episode_files.extend(dir_files)
+            print(f"Found {len(dir_files)} files in {source_dir}")
+        else:
+            print(f"Warning: Directory not found: {source_dir}")
+
+    print(f"\nTotal: {len(episode_files)} episode files")
+
+    if args.min_percentile < 0:
+        disp_min_perc = "None"
     else:
-        # Initialize semantic similarity model
+        disp_min_perc = f"{args.min_percentile}th percentile"
+
+    # Pre-filter episodes by percentile threshold and title exclusions
+    print(f"Filtering episodes by percentile threshold ({disp_min_perc}) and title exclusions...")
+    filtered_episode_data = []
+    episodes_skipped_percentile = 0
+    episodes_excluded_by_title = 0
+
+    for episode_file in tqdm(episode_files, desc="Filtering"):
+        with open(episode_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        youtube_data = data.get('youtube', {}) or {}
+        video_id = youtube_data.get('video_id')
+
+        percentile = None
+        if video_id and video_id in percentile_map:
+            percentile = percentile_map[video_id]
+            if percentile < args.min_percentile:
+                episodes_skipped_percentile += 1
+                continue
+
+        title = data.get("title", episode_file.stem)
+        if EXCLUDE_TITLES:
+            title_lower = title.lower()
+            if any(exclude.lower() in title_lower for exclude in EXCLUDE_TITLES):
+                episodes_excluded_by_title += 1
+                continue
+
+        cache_key = _build_episode_cache_key(data, episode_file)
+        filtered_episode_data.append({
+            "file": episode_file,
+            "data": data,
+            "title": title,
+            "percentile": percentile,
+            "cache_key": cache_key,
+        })
+
+    print(f"✓ Episodes after filtering: {len(filtered_episode_data)}")
+    if episodes_skipped_percentile > 0:
+        print(f"  Skipped (percentile < {args.min_percentile}): {episodes_skipped_percentile}")
+    if episodes_excluded_by_title > 0:
+        print(f"  Excluded by title filter: {episodes_excluded_by_title}")
+
+    current_taxonomy_hash = _taxonomy_hash(taxonomy)
+    cache_matches = {}
+    cached_taxonomy_hash = ""
+    taxonomy_changed = False
+
+    if args.use_cache:
+        print(f"Loading category match cache from {CACHE_FILE}...")
+        cache_blob = load_match_cache(CACHE_FILE)
+        cache_matches = cache_blob["matches"]
+        cached_taxonomy_hash = cache_blob["taxonomy_hash"]
+        taxonomy_changed = cached_taxonomy_hash != current_taxonomy_hash
+
+        if taxonomy_changed and cache_matches:
+            print("Taxonomy changed since cache creation; rematching all filtered episodes.")
+            cache_matches = {}
+
+        print(f"✓ Loaded {len(cache_matches)} cached episode-category matches\n")
+    else:
+        print("Cache reuse disabled; matching all filtered episodes.")
+
+    categorized_episodes = defaultdict(list)
+    episode_matches = []
+
+    episodes_reused_from_cache = 0
+    episodes_to_match = []
+
+    for item in filtered_episode_data:
+        cache_key = item["cache_key"]
+        cached_match = cache_matches.get(cache_key) if args.use_cache else None
+
+        if cached_match:
+            matched_category = cached_match["category"]
+            matched_subcategory = cached_match["subcategory"]
+            category_label = f"{matched_category} - {matched_subcategory}"
+
+            if category_label not in category_to_description:
+                episodes_to_match.append(item)
+                continue
+
+            episodes_reused_from_cache += 1
+            item["category_label"] = category_label
+            item["matched_category"] = matched_category
+            item["matched_subcategory"] = matched_subcategory
+            item["category_relevance"] = cached_match.get("category_relevance", "Cached")
+            item["related_categories"] = cached_match.get("related_categories", [])
+        else:
+            episodes_to_match.append(item)
+
+    model = None
+    category_embeddings = None
+
+    if episodes_to_match:
+        print(f"Matching {len(episodes_to_match)} episodes with semantic similarity...")
         print("Initializing semantic similarity model...")
-        
+
         if torch.cuda.is_available():
             device = torch.device("cuda")
         elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
@@ -400,9 +560,8 @@ def main():
         model = SentenceTransformer(MODEL, trust_remote_code=True, device=device)
         if device == "cuda" and USE_FP16:
             model = model.to(torch.float16)
-        print(f"✓ Model loaded: {MODEL}\n")
-        
-        # Pre-compute category embeddings
+        print(f"✓ Model loaded: {MODEL}")
+
         print("Computing category embeddings...")
         category_descriptions = [
             f"{entry['subcategory']}: {entry['description']}"
@@ -415,158 +574,96 @@ def main():
             batch_size=BATCH_SIZE
         )
         print(f"✓ Computed embeddings for {len(taxonomy)} categories\n")
-        
-        # Create category label to description mapping
-        category_to_description = {
-            f"{entry['category']} - {entry['subcategory']}": entry['description']
-            for entry in taxonomy
-        }
 
-        # Collect all JSON files from all source directories
-        episode_files = []
-        for source_dir in args.source_dirs:
-            source_path = Path(source_dir)
-            if source_path.exists():
-                dir_files = sorted(source_path.glob("*.json"))
-                episode_files.extend(dir_files)
-                print(f"Found {len(dir_files)} files in {source_dir}")
-            else:
-                print(f"Warning: Directory not found: {source_dir}")
-        
-        print(f"\nTotal: {len(episode_files)} episode files")
-        
-        if args.min_percentile < 0:
-            disp_min_perc = "None"
-        else:
-            disp_min_perc = f"{args.min_percentile}th percentile"
-
-        # Pre-filter episodes by percentile threshold and title exclusions
-        print(f"Filtering episodes by percentile threshold ({disp_min_perc}) and title exclusions...")
-        filtered_episode_files = []
-        episodes_skipped_percentile = 0
-        episodes_excluded_by_title = 0
-        
-        for episode_file in tqdm(episode_files, desc="Filtering"):
-            with open(episode_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # Check percentile filter (if YouTube data is available)
-            youtube_data = data.get('youtube', {})
-            video_id = youtube_data.get('video_id') if youtube_data else None
-            
-            # Handle percentile filtering only if percentile data exists
-            if video_id and video_id in percentile_map:
-                percentile = percentile_map[video_id]
-                if percentile < args.min_percentile:
-                    episodes_skipped_percentile += 1
-                    continue
-            # else: No percentile data - include by default
-            
-            # Check title exclusion filter
-            title = data.get("title", episode_file.stem)
-            if EXCLUDE_TITLES:
-                title_lower = title.lower()
-                if any(exclude.lower() in title_lower for exclude in EXCLUDE_TITLES):
-                    episodes_excluded_by_title += 1
-                    continue
-            
-            filtered_episode_files.append(episode_file)
-        
-        print(f"✓ Episodes after filtering: {len(filtered_episode_files)}")
-        if episodes_skipped_percentile > 0:
-            print(f"  Skipped (percentile < {args.min_percentile}): {episodes_skipped_percentile}")
-        if episodes_excluded_by_title > 0:
-            print(f"  Excluded by title filter: {episodes_excluded_by_title}")
-        print(f"Categorizing episodes using semantic similarity...\n")
-        
-        # Dictionary to store episodes by category
-        categorized_episodes = defaultdict(list)
-        episode_matches = []
-        
-        for episode_file in tqdm(filtered_episode_files):
-            with open(episode_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # Extract episode data
-            youtube_data = data.get('youtube', {})
-            video_id = youtube_data.get('video_id') if youtube_data else None
-            published_at_raw = data.get('pub_date')
-            published_date = _format_published_date(published_at_raw)
-            youtube_url = youtube_data.get('url')
-            
-            # Get percentile (already filtered, so just retrieve for metadata)
-            percentile = None
-            if video_id and video_id in percentile_map:
-                percentile = percentile_map[video_id]
-            
-            title = data.get("title", episode_file.stem)
-            
-            # Handle both old field name (transcript) and new field name (content)
-            content = _normalize_transcript_paragraphs(data.get("content"))
-            episode_url = data.get("url")
+        for item in tqdm(episodes_to_match, desc="Categorizing"):
+            data = item["data"]
+            title = item["title"]
             summary = data.get("summary", [])
+            content = _normalize_transcript_paragraphs(data.get("content"))
 
-            # Assign category using semantic similarity
             episode_data = {
                 'title': title,
                 'summary': summary,
                 'content': content
             }
-            category_label, similarity_score, description, related_categories = (
-                assign_category_by_similarity(
-                    episode_data,
-                    taxonomy,
-                    category_embeddings,
-                    model,
-                )
+            category_label, similarity_score, _, related_categories = assign_category_by_similarity(
+                episode_data,
+                taxonomy,
+                category_embeddings,
+                model,
             )
-            
-            # Convert similarity score to descriptive relevance level
-            relevance_level = similarity_to_relevance(similarity_score)
-                        
-            episode_record = {
-                'title': title,
-                'published_date': published_date,
-                'summary': summary,
-                'category_relevance': relevance_level,
-                'related_categories': related_categories,
-                'content': content,
-                'url': episode_url,
-                'percentile': percentile,
-                'youtube': youtube_url
-            }
-
-            categorized_episodes[category_label].append(episode_record)
 
             matched_category, matched_subcategory = category_label.split(" - ", 1)
+            item["category_label"] = category_label
+            item["matched_category"] = matched_category
+            item["matched_subcategory"] = matched_subcategory
+            item["category_relevance"] = similarity_to_relevance(similarity_score)
+            item["related_categories"] = related_categories
 
-            episode_matches.append({
-                "title": title,
+            cache_matches[item["cache_key"]] = {
                 "category": matched_category,
-                "subcategory": matched_subcategory
-            })
-        
-        print(f"\n✓ Categorization complete")
-        print(f"  episodes categorized: {len(filtered_episode_files)}")
-        
-        # Save cache for future regeneration
-        print(f"Saving categorization cache to {CACHE_FILE}...")
-        cache_data = {category: episodes for category, episodes in categorized_episodes.items()}
-        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(cache_data, f, indent=2)
-        print(f"✓ Cache saved\n")
-        
-        with open(OUTPUT_MATCHES_CSV, "w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=["title", "category", "subcategory"])
-            writer.writeheader()
-            writer.writerows(episode_matches)
+                "subcategory": matched_subcategory,
+                "category_relevance": item["category_relevance"],
+                "related_categories": related_categories,
+            }
+    else:
+        print("No semantic matching needed; all filtered episodes resolved from cache.\n")
+
+    for item in filtered_episode_data:
+        data = item["data"]
+        youtube_data = data.get('youtube', {}) or {}
+        title = item["title"]
+        summary = data.get("summary", [])
+        content = _normalize_transcript_paragraphs(data.get("content"))
+
+        published_date = _format_published_date(data.get('pub_date'))
+        episode_url = data.get("url")
+        youtube_url = youtube_data.get('url')
+
+        episode_record = {
+            'title': title,
+            'published_date': published_date,
+            'summary': summary,
+            'category_relevance': item.get("category_relevance", "N/A"),
+            'related_categories': item.get("related_categories", []),
+            'content': content,
+            'url': episode_url,
+            'percentile': item.get("percentile"),
+            'youtube': youtube_url
+        }
+
+        category_label = item["category_label"]
+        categorized_episodes[category_label].append(episode_record)
+
+        episode_matches.append({
+            "title": title,
+            "category": item["matched_category"],
+            "subcategory": item["matched_subcategory"]
+        })
+
+    print("\n✓ Categorization complete")
+    print(f"  episodes after filtering: {len(filtered_episode_data)}")
+    print(f"  reused from cache: {episodes_reused_from_cache}")
+    print(f"  newly matched: {len(episodes_to_match)}")
+    if args.use_cache and taxonomy_changed:
+        print("  rematch reason: taxonomy changed")
+
+    print(f"Saving category match cache to {CACHE_FILE}...")
+    save_match_cache(CACHE_FILE, current_taxonomy_hash, cache_matches)
+    print("✓ Cache saved\n")
+
+    OUTPUT_MATCHES_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with open(OUTPUT_MATCHES_CSV, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["title", "category", "subcategory"])
+        writer.writeheader()
+        writer.writerows(episode_matches)
     
     # Generate markdown files for each category
     FULL_OUTPUT_DIR = Path("output/categorized")
     SUMMARY_OUTPUT_DIR = Path("output/summaries")   
     
-    FULL_OUTPUT_DIR.mkdir(exist_ok=True)
-    SUMMARY_OUTPUT_DIR.mkdir(exist_ok=True)
+    FULL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    SUMMARY_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Track statistics for CSV output
     category_statistics = []
@@ -659,6 +756,7 @@ def main():
     # Write category statistics to CSV
     STATS_CSV = Path("output/category_statistics.csv")
     print(f"\nWriting category statistics to {STATS_CSV}...")
+    STATS_CSV.parent.mkdir(parents=True, exist_ok=True)
     with open(STATS_CSV, 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=[
             'Category',
