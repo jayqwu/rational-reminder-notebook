@@ -60,7 +60,7 @@ def compile_key_topics(source_dirs=None, output_file="output/summaries/Full Summ
         metrics_file: Path to YouTube metrics CSV file
     """
     if source_dirs is None:
-        source_dirs = ["output/rational_reminder", "output/kitces"]
+        source_dirs = ["output/rational_reminder"]
     
     # Ensure source_dirs is a list
     if isinstance(source_dirs, str):
@@ -164,15 +164,15 @@ if __name__ == "__main__":
     )
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument(
-        '--rr-only',
+        '--kitces',
         action='store_true',
-        help='Only use content from The Rational Reminder podcast'
+        help='Include content from the Kitces blog in addition to Rational Reminder'
     )
     source_group.add_argument(
         '--source-dir',
         action='append',
         dest='source_dirs',
-        help='Directory containing source JSON files (can be specified multiple times; default: output/rational_reminder and output/kitces)'
+        help='Directory containing source JSON files (can be specified multiple times; default: output/rational_reminder; add --kitces to include output/kitces)'
     )
     parser.add_argument(
         '--output',
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    if args.rr_only:
-        args.source_dirs = ["output/rational_reminder"]
+    if args.kitces:
+        args.source_dirs = ["output/rational_reminder", "output/kitces"]
     
     compile_key_topics(args.source_dirs, args.output, args.min_percentile, args.metrics_file)

@@ -3,18 +3,14 @@
 
 import argparse
 import os
-import re
 import json
 import base64
 import pickle
-from io import BytesIO
 from pathlib import Path
 from dotenv import load_dotenv, set_key
 from tqdm import tqdm
 from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2.credentials import Credentials as OAuth2Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -94,89 +90,45 @@ def get_or_create_upload_folder(service):
     
     return folder_id
 
-def upload_markdown_file(service, file_path, parent_folder_id):
-    """
-    Upload a markdown file to Google Docs.
-    
-    Args:
-        service: Google Drive API service
-        file_path: Path to the markdown file
-        parent_folder_id: ID of the parent folder in Google Drive
-    
-    Returns:
-        Tuple of (document_id, document_url, file_size_mb)
-    """
-    # Read markdown file
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # Create file metadata - document will be created as Google Doc
-    file_name = file_path.stem  # Remove .md extension
-    file_metadata = {
-        'name': file_name,
-        'mimeType': 'application/vnd.google-apps.document',
-        'parents': [parent_folder_id]
-    }
-    
-    # Create a temporary text file for upload
-    temp_file = f"/tmp/{file_path.stem}_{os.getpid()}.txt"
-    with open(temp_file, 'w', encoding='utf-8') as f:
-        f.write(content)
-    
-    try:
-        # Upload with plain text mimetype
-        # Google Drive will convert this to a Google Doc automatically
-        media = MediaFileUpload(temp_file, mimetype='text/markdown', resumable=True)
-        
-        doc = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, webViewLink, size'
-        ).execute()
-        
-        file_size_mb = float(doc.get('size', 0)) / (1024 * 1024)
-        
-        return doc.get('id'), doc.get('webViewLink'), file_size_mb
-    finally:
-        # Clean up temp file
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
 
-def update_markdown_file(service, file_path, doc_id):
-    """
-    Update an existing markdown file in Google Docs with new content.
-    Preserves the original File ID while replacing the content.
-    
-    Args:
-        service: Google Drive API service
-        file_path: Path to the markdown file
-        doc_id: ID of the existing Google Doc to update
-    
-    Returns:
-        Tuple of (document_id, document_url, file_size_mb)
-    """
+def upsert_markdown_file(service, file_path, parent_folder_id, doc_id=None):
+    """Create or update a Google Doc from a markdown file and return file size in MB."""
+    if not parent_folder_id and not doc_id:
+        raise ValueError("Either parent_folder_id or doc_id must be provided")
+
     # Read markdown file
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    
+
     # Create a temporary text file for upload
     temp_file = f"/tmp/{file_path.stem}_{os.getpid()}.txt"
     with open(temp_file, 'w', encoding='utf-8') as f:
         f.write(content)
-    
+
     try:
-        # Update the existing document with new content
         media = MediaFileUpload(temp_file, mimetype='text/markdown', resumable=True)
-        
-        doc = service.files().update(
-            fileId=doc_id,
-            media_body=media,
-            fields='id, webViewLink, size'
-        ).execute()
-        
+
+        if doc_id:
+            doc = service.files().update(
+                fileId=doc_id,
+                media_body=media,
+                fields='id, webViewLink, size'
+            ).execute()
+        else:
+            file_name = file_path.stem
+            file_metadata = {
+                'name': file_name,
+                'mimeType': 'application/vnd.google-apps.document',
+                'parents': [parent_folder_id]
+            }
+            doc = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id, webViewLink, size'
+            ).execute()
+
         file_size_mb = float(doc.get('size', 0)) / (1024 * 1024)
-        
-        return doc.get('id'), doc.get('webViewLink'), file_size_mb
+        return file_size_mb
     finally:
         # Clean up temp file
         if os.path.exists(temp_file):
@@ -328,9 +280,10 @@ def main():
     print("Checking for existing documents...")
     existing_docs = check_existing_docs(service, folder_id)
     
-    upload_results = []
+    new_upload_count = 0
     failed_uploads = []
-    updated_uploads = []
+    updated_upload_count = 0
+    total_processed_size_mb = 0.0
     failed_topics = set()
     successful_topics = set()
 
@@ -341,27 +294,22 @@ def main():
     
     for markdown_file in tqdm(markdown_files, desc="Uploading to Google Docs"):
         doc_name = markdown_file.stem
+        existing_doc_id = existing_docs.get(doc_name)
         
         try:
-            # Check if document already exists
-            if doc_name in existing_docs:
-                # Update existing document
-                doc_id, doc_url, file_size = update_markdown_file(service, markdown_file, existing_docs[doc_name])
-                updated_uploads.append({
-                    'file': markdown_file.name,
-                    'doc_id': doc_id,
-                    'url': doc_url,
-                    'size_mb': round(file_size, 2)
-                })
+            file_size = upsert_markdown_file(
+                service=service,
+                file_path=markdown_file,
+                parent_folder_id=folder_id,
+                doc_id=existing_doc_id,
+            )
+            rounded_size_mb = round(file_size, 2)
+            total_processed_size_mb += rounded_size_mb
+
+            if existing_doc_id:
+                updated_upload_count += 1
             else:
-                # Create new document
-                doc_id, doc_url, file_size = upload_markdown_file(service, markdown_file, folder_id)
-                upload_results.append({
-                    'file': markdown_file.name,
-                    'doc_id': doc_id,
-                    'url': doc_url,
-                    'size_mb': round(file_size, 2)
-                })
+                new_upload_count += 1
 
             topic = topic_by_stem.get(doc_name)
             if topic:
@@ -380,8 +328,8 @@ def main():
     print("\n" + "="*95)
     print("Upload Summary")
     print("="*95)
-    print(f"Newly uploaded: {len(upload_results)}")
-    print(f"Updated existing: {len(updated_uploads)}")
+    print(f"Newly uploaded: {new_upload_count}")
+    print(f"Updated existing: {updated_upload_count}")
     print(f"Failed uploads: {len(failed_uploads)}")
     
     if failed_uploads:
@@ -389,10 +337,9 @@ def main():
         for failed in failed_uploads:
             print(f"  - {failed['file']}: {failed['error']}")
     
-    total_uploaded = len(upload_results) + len(updated_uploads)
+    total_uploaded = new_upload_count + updated_upload_count
     if total_uploaded > 0:
-        total_size = sum(doc['size_mb'] for doc in upload_results + updated_uploads)
-        print(f"\nTotal processed: {total_size:.2f} MB")
+        print(f"\nTotal processed: {total_processed_size_mb:.2f} MB")
 
     if not args.all_sources:
         clear_needs_upload(

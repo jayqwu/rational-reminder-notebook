@@ -16,7 +16,8 @@ from sentence_transformers import SentenceTransformer, util
 import re
 from url_cache import normalize_cache_url
 
-DEFAULT_SOURCE_DIRS = ["output/rational_reminder", "output/kitces"]
+DEFAULT_SOURCE_DIRS = ["output/rational_reminder"]
+KITCES_SOURCE_DIR = "output/kitces"
 METRICS_FILE = "output/youtube_metrics.csv"
 TAXONOMY_PATH = Path("taxonomy.json")
 OUTPUT_MATCHES_CSV = Path("output/episode_category_matches.csv")
@@ -392,14 +393,17 @@ def parse_args():
     # Create mutually exclusive group for source selection
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument(
-        "--rr-only",
+        "--kitces",
         action="store_true",
-        help="Only use content from The Rational Reminder podcast"
+        help="Include content from the Kitces blog in addition to Rational Reminder"
     )
     source_group.add_argument(
         "--source-dirs",
         nargs="+",
-        help=f"Source directories containing JSON files (default: {' '.join(DEFAULT_SOURCE_DIRS)})"
+        help=(
+            "Source directories containing JSON files "
+            f"(default: {' '.join(DEFAULT_SOURCE_DIRS)}; add --kitces to include {KITCES_SOURCE_DIR})"
+        )
     )
     
     parser.add_argument(
@@ -427,8 +431,8 @@ def main():
     load_dotenv()
 
     # Handle mutually exclusive source options
-    if args.rr_only:
-        args.source_dirs = ["output/rational_reminder"]
+    if args.kitces:
+        args.source_dirs = DEFAULT_SOURCE_DIRS + [KITCES_SOURCE_DIR]
     elif args.source_dirs is None:
         args.source_dirs = DEFAULT_SOURCE_DIRS 
     
@@ -726,14 +730,14 @@ def main():
         markdown_full.append(f"## Topic Description\n\n{description}\n\n")
         markdown_full.append(f"Pieces of Content: {len(episode_batch)}\n\n")
         
-        if args.rr_only:
-            markdown_full.append(
-                "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/)\n\n"
-            )
-        else:
+        if args.kitces:
             markdown_full.append(
                 "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and "
                 "[Kitces](https://www.kitces.com/)\n\n"
+            )
+        else:
+            markdown_full.append(
+                "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/)\n\n"
             )
 
         # Header section for summary markdown is the same
