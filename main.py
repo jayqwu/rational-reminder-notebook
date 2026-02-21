@@ -181,6 +181,8 @@ def main():
     summary_cmd = ["python", "compile_summary.py"]
     if args.min_percentile >-1:
         summary_cmd.extend(["--min-percentile", str(args.min_percentile)])
+    if args.rr_only:
+        summary_cmd.append("--rr-only")
 
     if run_command("Compiling summary", summary_cmd):
         steps_completed.append("Summary")

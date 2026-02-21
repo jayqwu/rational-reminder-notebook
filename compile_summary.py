@@ -162,7 +162,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Compile key topics from source files"
     )
-    parser.add_argument(
+    source_group = parser.add_mutually_exclusive_group()
+    source_group.add_argument(
+        '--rr-only',
+        action='store_true',
+        help='Only use content from The Rational Reminder podcast'
+    )
+    source_group.add_argument(
         '--source-dir',
         action='append',
         dest='source_dirs',
@@ -186,5 +192,8 @@ if __name__ == "__main__":
     )
     
     args = parser.parse_args()
+
+    if args.rr_only:
+        args.source_dirs = ["output/rational_reminder"]
     
     compile_key_topics(args.source_dirs, args.output, args.min_percentile, args.metrics_file)
