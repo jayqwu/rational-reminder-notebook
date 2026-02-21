@@ -15,14 +15,14 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
 import shutil
 import re
-from urllib.parse import urlsplit, urlunsplit
+from url_cache import normalize_cache_url
 
 DEFAULT_SOURCE_DIRS = ["output/rational_reminder", "output/kitces"]
 METRICS_FILE = "output/youtube_metrics.csv"
 TAXONOMY_PATH = Path("taxonomy.json")
 OUTPUT_MATCHES_CSV = Path("output/episode_category_matches.csv")
 OUTPUT_SIMILARITIES_CSV = Path("output/episode_similarity_matrix.csv")
-CACHE_FILE = Path("output/episodes_cache.json")
+CACHE_FILE = Path("output/cache.json")
 
 # Similarity thresholds for relevance levels (these can be tuned based on observed score distribution)
 SIMILARITY_VERY_HIGH = 0.5
@@ -51,8 +51,6 @@ EXCLUDE_TITLES = [
 USE_FP16 = True
 BATCH_SIZE = 8
 MODEL='Octen/Octen-Embedding-0.6B'
-
-CACHE_SCHEMA_VERSION = 1
 
 def load_taxonomy(path):
     """Load taxonomy from JSON file.
@@ -272,28 +270,11 @@ def _format_published_date(value):
         return ""
     return parsed.date().isoformat()
 
-def _normalize_url_for_cache(value):
-    if not value:
-        return None
-    try:
-        parsed = urlsplit(str(value).strip())
-    except Exception:
-        return None
-    if not parsed.netloc:
-        return None
-    normalized = parsed._replace(
-        scheme=parsed.scheme.lower(),
-        netloc=parsed.netloc.lower(),
-        query="",
-        fragment="",
-    )
-    normalized_url = urlunsplit(normalized).rstrip("/")
-    return normalized_url or None
 
 def _build_episode_cache_key(data, episode_file):
-    source_url = _normalize_url_for_cache(data.get("url"))
+    source_url = normalize_cache_url(data.get("url"))
     if source_url:
-        return f"url::{source_url}"
+        return source_url
     raise ValueError(f"Episode missing valid URL for cache key: {episode_file}")
 
 def _taxonomy_hash(taxonomy):
@@ -303,7 +284,6 @@ def _taxonomy_hash(taxonomy):
 def load_match_cache(path):
     if not path.exists():
         return {
-            "schema_version": CACHE_SCHEMA_VERSION,
             "taxonomy_hash": "",
             "matches": {},
         }
@@ -312,39 +292,68 @@ def load_match_cache(path):
         cache_data = json.load(f)
 
     if not isinstance(cache_data, dict):
-        raise ValueError("Cache file must be a JSON object with schema_version, taxonomy_hash, and matches")
+        raise ValueError("Unified cache file must be a JSON object")
 
-    if cache_data.get("schema_version") != CACHE_SCHEMA_VERSION:
-        raise ValueError(
-            f"Cache schema mismatch in {path}: expected schema_version={CACHE_SCHEMA_VERSION}"
-        )
+    taxonomy_hash = cache_data.get("_taxonomy_hash", "")
+    if not isinstance(taxonomy_hash, str):
+        taxonomy_hash = ""
 
-    taxonomy_hash = cache_data.get("taxonomy_hash")
-    matches = cache_data.get("matches")
-    if not isinstance(taxonomy_hash, str) or not isinstance(matches, dict):
-        raise ValueError("Cache file must include string taxonomy_hash and object matches")
+    matches = {}
 
-    for episode_key, match_data in matches.items():
-        if not isinstance(episode_key, str) or not isinstance(match_data, dict):
-            raise ValueError("Each cache match entry must be an object keyed by episode identifier")
-        if "category" not in match_data or "subcategory" not in match_data:
-            raise ValueError("Each cache match must include category and subcategory")
-        if "related_categories" in match_data and not isinstance(match_data["related_categories"], list):
-            raise ValueError("related_categories in cache must be a list when provided")
+    # Flat shape: top-level URL-key entries with category fields in each URL object.
+    for episode_key, entry in cache_data.items():
+        if not isinstance(episode_key, str) or not isinstance(entry, dict):
+            continue
+        if not episode_key.startswith(("https://", "http://")):
+            continue
+
+        if "category" not in entry or "subcategory" not in entry:
+            continue
+
+        related_categories = entry.get("related_categories", [])
+        if not isinstance(related_categories, list):
+            related_categories = []
+
+        matches[episode_key] = {
+            "category": entry["category"],
+            "subcategory": entry["subcategory"],
+            "category_relevance": entry.get("category_relevance", "N/A"),
+            "related_categories": related_categories,
+        }
 
     return {
-        "schema_version": CACHE_SCHEMA_VERSION,
         "taxonomy_hash": taxonomy_hash,
         "matches": matches,
     }
 
 def save_match_cache(path, taxonomy_hash, matches):
     path.parent.mkdir(parents=True, exist_ok=True)
-    cache_data = {
-        "schema_version": CACHE_SCHEMA_VERSION,
-        "taxonomy_hash": taxonomy_hash,
-        "matches": matches,
-    }
+
+    if path.exists():
+        with open(path, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        if not isinstance(cache_data, dict):
+            cache_data = {}
+    else:
+        cache_data = {}
+
+    cache_data["_taxonomy_hash"] = taxonomy_hash
+
+    for cache_key, match_data in matches.items():
+        normalized_key = normalize_cache_url(cache_key)
+        if not normalized_key:
+            continue
+        existing_entry = cache_data.get(normalized_key)
+        entry = dict(existing_entry) if isinstance(existing_entry, dict) else {}
+
+        entry["category"] = match_data.get("category")
+        entry["subcategory"] = match_data.get("subcategory")
+        entry["category_relevance"] = match_data.get("category_relevance")
+        related_categories = match_data.get("related_categories", [])
+        entry["related_categories"] = related_categories if isinstance(related_categories, list) else []
+
+        cache_data[normalized_key] = entry
+
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(cache_data, f, indent=2)
 
