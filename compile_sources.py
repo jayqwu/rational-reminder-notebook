@@ -48,10 +48,7 @@ EXCLUDE_TITLES = [
 # GPU/embedding controls tuned for laptop GPUs
 USE_FP16 = True
 BATCH_SIZE = 8
-# MODEL='Octen/Octen-Embedding-8B'
-# MODEL='Octen/Octen-Embedding-4B'
 MODEL='Octen/Octen-Embedding-0.6B'
-# MODEL='nomic-ai/nomic-embed-text-v1.5'
 
 def load_taxonomy(path):
     """Load taxonomy from JSON file.
@@ -203,7 +200,7 @@ def append_episode_markdown(target, episode, include_content=False):
 
     target.append("---\n\n")
 
-def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, model, return_similarities=False):
+def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, model):
     """Assign a category to an episode based on semantic similarity.
     
     Args:
@@ -214,8 +211,6 @@ def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, m
     
     Returns:
         Tuple of (category_label, similarity_score, description, related_categories)
-        If return_similarities is True, also returns a list of similarity scores
-        aligned to the taxonomy order.
     """
     # Create episode text representation
     title = episode_data.get('title', '')
@@ -256,10 +251,6 @@ def assign_category_by_similarity(episode_data, taxonomy, category_embeddings, m
         for idx, _ in other_matches[:3]
     ]
     
-    if return_similarities:
-        similarity_scores = [score.item() for score in similarities]
-        return category_label, best_score, description, related_categories, similarity_scores
-
     return category_label, best_score, description, related_categories
 
 def _format_published_date(value):
@@ -491,8 +482,6 @@ def main():
         # Dictionary to store episodes by category
         categorized_episodes = defaultdict(list)
         episode_matches = []
-        similarity_rows = []
-        all_similarity_scores = []  # Track all similarity scores for distribution analysis
         
         for episode_file in tqdm(filtered_episode_files):
             with open(episode_file, 'r', encoding='utf-8') as f:
@@ -503,13 +492,7 @@ def main():
             video_id = youtube_data.get('video_id') if youtube_data else None
             published_at_raw = data.get('pub_date')
             published_date = _format_published_date(published_at_raw)
-            
-            # Build YouTube URL if available
-            youtube_url = None
-            if youtube_data:
-                youtube_url = youtube_data.get('url')
-                if not youtube_url and video_id:
-                    youtube_url = f"https://www.youtube.com/watch?v={video_id}"
+            youtube_url = youtube_data.get('url')
             
             # Get percentile (already filtered, so just retrieve for metadata)
             percentile = None
@@ -519,10 +502,8 @@ def main():
             title = data.get("title", episode_file.stem)
             
             # Handle both old field name (transcript) and new field name (content)
-            content = _normalize_transcript_paragraphs(
-                data.get("content") or data.get("transcript", [])
-            )
-            episode_url = data.get("url") or data.get("episode_url")
+            content = _normalize_transcript_paragraphs(data.get("content"))
+            episode_url = data.get("url")
             summary = data.get("summary", [])
 
             # Assign category using semantic similarity
@@ -531,22 +512,18 @@ def main():
                 'summary': summary,
                 'content': content
             }
-            category_label, similarity_score, description, related_categories, similarity_scores = (
+            category_label, similarity_score, description, related_categories = (
                 assign_category_by_similarity(
                     episode_data,
                     taxonomy,
                     category_embeddings,
                     model,
-                    return_similarities=True,
                 )
             )
             
             # Convert similarity score to descriptive relevance level
             relevance_level = similarity_to_relevance(similarity_score)
-            
-            # Track all similarity scores for distribution analysis (not just best match)
-            all_similarity_scores.extend(similarity_scores)
-            
+                        
             episode_record = {
                 'title': title,
                 'published_date': published_date,
@@ -555,62 +532,22 @@ def main():
                 'related_categories': related_categories,
                 'content': content,
                 'url': episode_url,
-                'percentile': percentile if percentile is not None else -1.0,
+                'percentile': percentile,
                 'youtube': youtube_url
             }
 
             categorized_episodes[category_label].append(episode_record)
 
-            if " - " in category_label:
-                matched_category, matched_subcategory = category_label.split(" - ", 1)
-            else:
-                matched_category, matched_subcategory = category_label, ""
+            matched_category, matched_subcategory = category_label.split(" - ", 1)
 
             episode_matches.append({
                 "title": title,
                 "category": matched_category,
                 "subcategory": matched_subcategory
             })
-
-            similarity_row = {
-                "episode_title": title,
-            }
-            for entry, score in zip(taxonomy, similarity_scores):
-                label = f"{entry['category']} - {entry['subcategory']}"
-                similarity_row[label] = score
-            similarity_rows.append(similarity_row)
         
         print(f"\n✓ Categorization complete")
         print(f"  episodes categorized: {len(filtered_episode_files)}")
-        
-        # Calculate and display similarity score distribution
-        if all_similarity_scores:
-            sorted_scores = sorted(all_similarity_scores)
-            n = len(sorted_scores)
-            
-            def percentile(data, p):
-                """Calculate percentile from sorted data"""
-                k = (n - 1) * p / 100
-                f = int(k)
-                c = k - f
-                if f + 1 < n:
-                    return data[f] + c * (data[f + 1] - data[f])
-                return data[f]
-            
-            p20 = percentile(sorted_scores, 20)
-            p40 = percentile(sorted_scores, 40)
-            p60 = percentile(sorted_scores, 60)
-            p80 = percentile(sorted_scores, 80)
-            
-            print("\nSimilarity Score Distribution:")
-            print(f"  20th percentile: {p20:.4f}")
-            print(f"  40th percentile: {p40:.4f}")
-            print(f"  60th percentile: {p60:.4f}")
-            print(f"  80th percentile: {p80:.4f}")
-            print(f"  Mean: {sum(all_similarity_scores) / len(all_similarity_scores):.4f}")
-            print(f"  Min: {min(all_similarity_scores):.4f}")
-            print(f"  Max: {max(all_similarity_scores):.4f}")
-        print()
         
         # Save cache for future regeneration
         print(f"Saving categorization cache to {CACHE_FILE}...")
@@ -623,26 +560,10 @@ def main():
             writer = csv.DictWriter(f, fieldnames=["title", "category", "subcategory"])
             writer.writeheader()
             writer.writerows(episode_matches)
-
-        print(f"\nWriting episode similarity matrix to {OUTPUT_SIMILARITIES_CSV}...")
-        similarity_fieldnames = [
-            "episode_title",
-            *[f"{entry['category']} - {entry['subcategory']}" for entry in taxonomy],
-        ]
-        with open(OUTPUT_SIMILARITIES_CSV, "w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=similarity_fieldnames)
-            writer.writeheader()
-            writer.writerows(similarity_rows)
-        print(f"✓ Wrote episode similarity matrix to {OUTPUT_SIMILARITIES_CSV}")
     
     # Generate markdown files for each category
     FULL_OUTPUT_DIR = Path("output/categorized")
     SUMMARY_OUTPUT_DIR = Path("output/summaries")   
-    
-    # Clean up output subdirectories if they exist
-    for subdir in [FULL_OUTPUT_DIR, SUMMARY_OUTPUT_DIR]:
-        if subdir.exists():
-            shutil.rmtree(subdir)
     
     FULL_OUTPUT_DIR.mkdir(exist_ok=True)
     SUMMARY_OUTPUT_DIR.mkdir(exist_ok=True)
@@ -704,19 +625,14 @@ def main():
             print(f"  ⚠ Warning: {category} exceeded file size limit with {file_size_mb:.1f} MB")
         
         # Collect statistics for CSV
-        if " - " in category:
-            cat_name, subcat_name = category.split(" - ", 1)
-        else:
-            cat_name, subcat_name = category, ""
+        cat_name, subcat_name = category.split(" - ", 1)
         
-        episode_titles = [ep['title'] for ep in episode_batch]
         category_statistics.append({
             'Category': cat_name,
             'Subcategory': subcat_name,
             '#': len(episode_batch),
             'WC': word_count,
             'Size': round(file_size_mb, 2),
-            'List': '; '.join(episode_titles)
         })
     
     # Print summary
@@ -740,14 +656,6 @@ def main():
         print(f"{category_label:<22} {subcategory_label:<52} {episode_count:>8} {word_count:>10,}")
     print("="*95)
     
-    if not args.use_cache:
-        print(f"\n✓ Wrote episode match CSV to {OUTPUT_MATCHES_CSV}")
-    elif args.use_cache:
-        print(
-            "\nNote: Similarity matrix CSV is only generated when categorizing; "
-            "run without --use-cache to regenerate it."
-        )
-    
     # Write category statistics to CSV
     STATS_CSV = Path("output/category_statistics.csv")
     print(f"\nWriting category statistics to {STATS_CSV}...")
@@ -758,7 +666,6 @@ def main():
             '#',
             'WC',
             'Size',
-            'List'
         ])
         writer.writeheader()
         writer.writerows(category_statistics)
