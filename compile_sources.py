@@ -13,7 +13,6 @@ from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer, util
-import shutil
 import re
 from url_cache import normalize_cache_url
 
@@ -36,6 +35,9 @@ CITATION_LEN = 35
 # Weights for combining title and summary similarities (can be tuned)
 WEIGHT_TITLE = 0.20
 WEIGHT_SUMMARY = 0.80
+
+# Word count limit for category markdown files (NotebookLM limit)
+WORD_COUNT_LIMIT = 500000
 
 # Exclude episodes whose titles contain any of these strings (case-insensitive)
 EXCLUDE_TITLES = [
@@ -750,12 +752,9 @@ def main():
                 f.writelines(markdown_full)
         
         # Get file size
-        file_size_mb = os.path.getsize(full_path) / (1024 * 1024)
         word_count = sum(len(line.split()) for line in markdown_full)
-        if word_count > 200000:
+        if word_count > WORD_COUNT_LIMIT:
             print(f"  ⚠ Warning: {category} exceeded word limit with {word_count:,} words")
-        if file_size_mb > 200:
-            print(f"  ⚠ Warning: {category} exceeded file size limit with {file_size_mb:.1f} MB")
         
         # Collect statistics for CSV
         cat_name, subcat_name = category.split(" - ", 1)
@@ -765,7 +764,6 @@ def main():
             'Subcategory': subcat_name,
             '#': len(episode_batch),
             'WC': word_count,
-            'Size': round(file_size_mb, 2),
         })
     
     # Print summary
@@ -799,7 +797,6 @@ def main():
             'Subcategory',
             '#',
             'WC',
-            'Size',
         ])
         writer.writeheader()
         writer.writerows(category_statistics)
