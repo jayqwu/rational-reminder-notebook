@@ -43,5 +43,5 @@ Thumbs.db
 cache/
 logs/
 *.log
-output/
+output*/
 credentials.json

@@ -24,7 +24,6 @@ FAILED_URLS_FILE = "output/failed_rr.json"
 DELAY_BETWEEN_REQUESTS = 0.5  # seconds
 
 OUTRO_PREFIXES = [
-    "[AFTER SHOW]",
     "Disclosure:",
     "Disclaimer:",
     "Policies and Disclaimer",
@@ -355,51 +354,6 @@ def clean_transcript(transcript_text):
         normalize_paragraph(paragraph) for paragraph in transcript_text
     ]
 
-    def trim_transcript_by_marker(paragraphs, markers):
-        """Trim transcript by any of the provided markers (mutually exclusive).
-        
-        Args:
-            paragraphs: List of transcript paragraphs
-            markers: List of marker strings to search for
-        
-        Returns:
-            Tuple of (trimmed_paragraphs, was_trimmed)
-        """
-        for marker in markers:
-            marker_positions = [
-                idx for idx, paragraph in enumerate(paragraphs)
-                if isinstance(paragraph, str) and paragraph.strip() == marker
-            ]
-            if not marker_positions:
-                continue
-            if len(marker_positions) == 1:
-                return paragraphs[marker_positions[0] + 1:], True
-            first_idx = marker_positions[0]
-            last_idx = marker_positions[-1]
-            return paragraphs[first_idx + 1:last_idx], True
-        
-        return paragraphs, False
-    
-    # Trim transcript text by known markers to remove intro and outro content
-    # Markers are mutually exclusive, so check all at once
-    transcript_text, trimmed_by_marker = trim_transcript_by_marker(
-        transcript_text, 
-        ["***", "[EPISODE]", "[INTERVIEW]"]
-    )
-
-    # Remove lines ending with "welcome to the Rational Reminder Podcast" and all preceding lines
-    # Only check lines 5 to 100 of the transcript
-    # Skip this check if any marker-based trimming already occurred
-    if not trimmed_by_marker:
-        check_start = min(5, len(transcript_text))
-        check_end = min(100, len(transcript_text))
-        for idx in range(check_start, check_end):
-            line = transcript_text[idx]
-            if isinstance(line, str) and re.search(r'welcome[^(\.|\?|!)]+the rational reminder podcast(\.|\?|!)$', line, re.IGNORECASE):
-                # Remove this line and all preceding lines
-                transcript_text = transcript_text[idx + 1:]
-                break
-
     # Remove lines containing "Disclosure:" or "Disclaimer:" and all following lines
     # Only check the last 50 lines of the transcript
     check_start = max(0, len(transcript_text) - 50)
@@ -419,11 +373,7 @@ def clean_transcript(transcript_text):
             transcript_text = transcript_text[:idx]
             break
             
-    # Remove all instances of " : " from transcript text
-    transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
-    # Remove lines that are exactly "***"
-    transcript_text = [paragraph for paragraph in transcript_text if paragraph.strip() != "***"]
-    # Remove all instances of " : " from transcript text
+    # Normalize all instances of " : " to ": " to fix speaker formatting issues
     transcript_text = [paragraph.replace(" : ", ": ") for paragraph in transcript_text]
     # Remove lines that are exactly "***"
     transcript_text = [paragraph for paragraph in transcript_text if paragraph.strip() != "***"]
