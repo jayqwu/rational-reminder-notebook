@@ -31,7 +31,7 @@ SIMILARITY_AVERAGE = 0.3
 SIMILARITY_LOW = 0.2
 
 # Minimum number of words in a content paragraph to appending episode number for citation purposes
-CITATION_LEN = 35
+CITATION_LEN = 10
 
 # Weights for combining title and summary similarities (can be tuned)
 WEIGHT_TITLE = 0.20
@@ -170,13 +170,16 @@ def append_episode_markdown(target, episode, include_content=False):
 
     # Extract episode number in the format "Ep. #"
     episode_title = episode.get('title', '')
-    match = re.search(r'\bEpisode (\d+)', episode_title)
     citation = None
     for pattern, prefix in [(r'\bEpisode (\d+)', "Ep."), (r'\bUnderstanding Crypto (\d+)', "UC")]:
         match = re.search(pattern, episode_title)
         if match:
             citation = f"{prefix} {match.group(1)}"
             break
+    
+    # Default to full title if no pattern matched
+    if citation is None:
+        citation = episode_title
 
     if episode.get('popularity_percentile', -1) >= 0:
         target.append(
