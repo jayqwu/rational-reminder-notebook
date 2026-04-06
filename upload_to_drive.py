@@ -134,7 +134,7 @@ def upsert_markdown_file(service, file_path, parent_folder_id, doc_id=None):
         if os.path.exists(temp_file):
             os.remove(temp_file)
 
-def check_existing_docs(service, folder_id):
+def check_existing_docs(service, folder_id, names_to_check=None):
     """Check for existing documents in the folder."""
     query = f"'{folder_id}' in parents and trashed=false"
     results = service.files().list(
@@ -144,7 +144,13 @@ def check_existing_docs(service, folder_id):
         pageSize=1000
     ).execute()
     
-    existing_docs = {item['name']: item['id'] for item in results.get('files', [])}
+    all_existing_docs = {item['name']: item['id'] for item in results.get('files', [])}
+    
+    if names_to_check is not None:
+        existing_docs = {name: all_existing_docs.get(name) for name in names_to_check if name in all_existing_docs}
+    else:
+        existing_docs = all_existing_docs
+    
     return existing_docs
 
 
@@ -268,6 +274,10 @@ def main():
         print("Using all markdown files from source directory")
     else:
         markdown_files, selected_topics = load_updated_markdown_files(source_dir, args.cache_file)
+        summary_file = source_dir / "! Source Summary.md"
+        if summary_file.exists() and summary_file.suffix.lower() == ".md" and summary_file not in markdown_files:
+            markdown_files.append(summary_file)
+            print("Added ! Source Summary.md to upload list")
         print(f"Using updated topics from cache: {args.cache_file}")
     
     print(f"Found {len(markdown_files)} markdown files to upload\n")
@@ -276,9 +286,12 @@ def main():
         print("No files to upload. Exiting.")
         return
     
+    # Collect document names to check
+    doc_names = [f.stem for f in markdown_files]
+    
     # Check for existing documents
     print("Checking for existing documents...")
-    existing_docs = check_existing_docs(service, folder_id)
+    existing_docs = check_existing_docs(service, folder_id, names_to_check=doc_names)
     
     new_upload_count = 0
     failed_uploads = []

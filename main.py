@@ -17,8 +17,10 @@ Usage:
 import argparse
 import subprocess
 import sys
+import json
 from pathlib import Path
 from urllib.parse import urlparse
+from datetime import datetime
 
 
 def parse_args():
@@ -85,6 +87,44 @@ def parse_args():
     return parser.parse_args()
 
 
+def find_most_recent_episode(source_dir):
+    """Find the episode with the most recent publication date from filename."""
+    source_path = Path(source_dir)
+    if not source_path.exists():
+        return None
+    
+    episodes = []
+    for json_file in source_path.glob("*.json"):
+        filename = json_file.stem
+        if len(filename) >= 6 and filename[:6].isdigit():
+            date_str = filename[:6]
+            try:
+                year = int(date_str[:2])
+                month = int(date_str[2:4])
+                day = int(date_str[4:6])
+                year_full = 2000 + year if year < 70 else 1900 + year
+                pub_date = datetime(year_full, month, day)
+                
+                # Get title from JSON
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    title = data.get('title', filename)
+                except (json.JSONDecodeError, IOError):
+                    title = filename
+                
+                episodes.append((pub_date, title))
+            except ValueError:
+                continue
+    
+    if not episodes:
+        return None
+    
+    # Sort by date descending
+    episodes.sort(key=lambda x: x[0], reverse=True)
+    return episodes[0][1]
+
+
 def run_command(description, command):
     """Run a command and report results."""
     print("\n" + "="*70)
@@ -111,6 +151,9 @@ def main():
     
     steps_completed = []
     steps_skipped = []
+    
+    # Determine source directories
+    source_dirs = ["output/rational_reminder"]
     
     # Step 1: Scraping
     scrape_steps = []
@@ -190,14 +233,9 @@ def main():
         print("\n⊘ Skipped: Categorization (--skip-categorize)")
         steps_skipped.append("Categorization")
 
-    # Step 4: Summary
-    summary_cmd = ["python", "compile_summary.py"]
-    if args.min_percentile >-1:
-        summary_cmd.extend(["--min-percentile", str(args.min_percentile)])
-    if args.kitces:
-        summary_cmd.append("--kitces")
-
-    if run_command("Compiling summary", summary_cmd):
+    # Step 4: Compile all summaries into a single markdown file for upload
+    compile_summary_cmd = ["bash", "-c", "cat output/summaries/*.md > \"output/categorized/! Source Summary.md\""]
+    if run_command("Compiling summary", compile_summary_cmd):
         steps_completed.append("Summary")
     else:
         print("\nPipeline aborted.")
@@ -235,6 +273,18 @@ def main():
     
     print("\n✓ Pipeline execution complete!")
     print("="*70 + "\n")
+    
+    # Step 6: Generate NotebookLM prompts for the most recent episode
+    latest_title = find_most_recent_episode(source_dirs[0])
+    if latest_title:
+        print("\n" + "="*70)
+        print("NOTEBOOKLM PROMPTS FOR LATEST EPISODE")
+        print("="*70)
+        print(f"\nSummarize the discussion from \"{latest_title}\" into a concise executive summary with a neutral, high-density tone. DO NOT include information from other episodes. Use thematic groupings and highlight specific figures, percentages, and technical metrics.")
+        print(f"\nConsult \"! Source Summary\" to identify which other episodes are most closely related to \"{latest_title}\". Then, using those transcripts, list three related episodes and provide a one sentence description on the specific connection to \"{latest_title}\". You MUST use information from other episodes to determine which are best suited for further exploration on this podcast discussion.")
+        print("\n")
+    else:
+        print("\nNo episodes found to generate prompts.")
     
     return 0
 

@@ -156,11 +156,12 @@ def popularity_to_tier(value):
     else:
         return "Very Low"
 
-def append_episode_markdown(target, episode, include_content=False):
+def append_episode_markdown(target, category, episode, include_content=False):
     """Append episode markdown to target list.
 
     Args:
         target: list of markdown strings to append to
+        category: category label
         episode: episode data dictionary
         include_content: whether to append episode content paragraphs
     """
@@ -186,6 +187,8 @@ def append_episode_markdown(target, episode, include_content=False):
             f"Audience Popularity: popularity_to_tier({episode['popularity_percentile']})\n\n"
         )
 
+    if not include_content:
+        target.append(f"Category: {category}\n\n")
     target.append(f"Category relevance: {episode.get('category_relevance', 'N/A')}\n\n")
     if episode.get('related_categories'):
         target.append("Related categories:\n\n")
@@ -424,6 +427,11 @@ def parse_args():
         "--recategorize",
         action="store_true",
         help="Force recategorization for all filtered episodes using semantic similarity"
+    )
+    parser.add_argument(
+        "--force-regenerate",
+        action="store_true",
+        help="Force regeneration of all .md files without recategorizing"
     )
     return parser.parse_args()
 
@@ -706,7 +714,12 @@ def main():
     else:
         topics_to_update = set(newly_matched_topics)
 
+    if args.force_regenerate and use_cache:
+        topics_to_update = set(categorized_episodes.keys())
+
     print(f"Topics flagged for updates: {len(topics_to_update)}")
+    if args.force_regenerate and use_cache:
+        print("  (forced regeneration enabled)")
 
     print(f"Saving category match cache to {CACHE_FILE}...")
     save_match_cache(CACHE_FILE, current_taxonomy_hash, cache_matches, topics_to_update)
@@ -748,8 +761,8 @@ def main():
         
         # Add episodes
         for episode in episode_batch:
-            append_episode_markdown(markdown_summary, episode, include_content=False)
-            append_episode_markdown(markdown_full, episode, include_content=True)
+            append_episode_markdown(markdown_summary, base_filename, episode, include_content=False)
+            append_episode_markdown(markdown_full, base_filename, episode, include_content=True)
 
         if category in topics_to_update:
             with open(summary_path, 'w', encoding='utf-8') as f:
