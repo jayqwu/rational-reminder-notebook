@@ -6,13 +6,17 @@ import os
 import json
 import base64
 import pickle
+import time
+from functools import wraps
 from pathlib import Path
+from io import BytesIO
 from dotenv import load_dotenv, set_key
 from tqdm import tqdm
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.errors import HttpError
 
 # Google Drive API scopes
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -22,6 +26,62 @@ CREDENTIALS_FILE = Path("credentials.json")
 ENV_FILE = Path(".env")
 MARKDOWN_DIR = Path("output/categorized")
 CACHE_FILE = Path("output/cache.json")
+
+# Retry configuration
+MAX_RETRIES = 3
+BASE_BACKOFF_SECONDS = 1.0
+RATE_LIMIT_BACKOFF_SECONDS = 30.0
+
+
+def retry_with_backoff(max_retries=MAX_RETRIES, base_delay=BASE_BACKOFF_SECONDS):
+    """Decorator to retry a function with exponential backoff on transient errors."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_error = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except HttpError as e:
+                    status_code = e.resp.status
+                    last_error = e
+                    
+                    # Don't retry on client errors (4xx), except rate limit
+                    if 400 <= status_code < 500:
+                        if status_code == 429 or status_code == 403:
+                            # Rate limit: use longer backoff
+                            if attempt < max_retries:
+                                print(f"  ⏳ Rate limited. Waiting {RATE_LIMIT_BACKOFF_SECONDS}s before retry (attempt {attempt + 1}/{max_retries})")
+                                time.sleep(RATE_LIMIT_BACKOFF_SECONDS)
+                                continue
+                        # Other 4xx errors: fail immediately
+                        raise
+                    
+                    # Retry on server errors (5xx)
+                    if 500 <= status_code < 600:
+                        if attempt < max_retries:
+                            delay = base_delay * (2 ** attempt)
+                            print(f"  ⏳ Server error ({status_code}). Retrying in {delay}s (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(delay)
+                            continue
+                    
+                    # If not retrying, raise the error
+                    raise
+                except (TimeoutError, ConnectionError, OSError) as e:
+                    # Retry on network errors
+                    last_error = e
+                    if attempt < max_retries:
+                        delay = base_delay * (2 ** attempt)
+                        print(f"  ⏳ Network error: {type(e).__name__}. Retrying in {delay}s (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(delay)
+                        continue
+                    raise
+            
+            # All retries exhausted
+            raise last_error
+        return wrapper
+    return decorator
+
 
 def authenticate_google_drive():
     """Authenticate with Google Drive API using OAuth2."""
@@ -91,48 +151,69 @@ def get_or_create_upload_folder(service):
     return folder_id
 
 
+@retry_with_backoff()
 def upsert_markdown_file(service, file_path, parent_folder_id, doc_id=None):
-    """Create or update a Google Doc from a markdown file and return file size in MB."""
+    """Create or update a Google Doc from a markdown file.
+    
+    Args:
+        service: Authenticated Google Drive service.
+        file_path: Path to markdown file to upload.
+        parent_folder_id: Parent folder ID for new files (ignored for updates).
+        doc_id: Document ID for updates. If None, creates a new file.
+    
+    Returns:
+        Tuple of (file_size_mb: float, upload_type: str)
+        where upload_type is 'created' or 'updated'.
+    
+    Raises:
+        HttpError: On API errors (retried for 5xx, fails on 4xx).
+        IOError: If file cannot be read.
+    """
     if not parent_folder_id and not doc_id:
         raise ValueError("Either parent_folder_id or doc_id must be provided")
 
-    # Read markdown file
+    # Read markdown content directly into memory
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-
-    # Create a temporary text file for upload
-    temp_file = f"/tmp/{file_path.stem}_{os.getpid()}.txt"
-    with open(temp_file, 'w', encoding='utf-8') as f:
-        f.write(content)
-
-    try:
-        media = MediaFileUpload(temp_file, mimetype='text/markdown', resumable=True)
-
-        if doc_id:
-            doc = service.files().update(
-                fileId=doc_id,
-                media_body=media,
-                fields='id, webViewLink, size'
-            ).execute()
-        else:
-            file_name = file_path.stem
-            file_metadata = {
-                'name': file_name,
-                'mimeType': 'application/vnd.google-apps.document',
-                'parents': [parent_folder_id]
-            }
-            doc = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id, webViewLink, size'
-            ).execute()
-
-        file_size_mb = float(doc.get('size', 0)) / (1024 * 1024)
-        return file_size_mb
-    finally:
-        # Clean up temp file
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+    
+    # Convert content to bytes and wrap in BytesIO for upload
+    content_bytes = content.encode('utf-8')
+    file_stream = BytesIO(content_bytes)
+    
+    # Create media object (no resumable needed for 500KB files with stable connection)
+    media = MediaIoBaseUpload(
+        file_stream,
+        mimetype='text/markdown',
+        resumable=False  # Simple upload for small, stable files
+    )
+    
+    if doc_id:
+        # Update existing document: replaces full content
+        doc = service.files().update(
+            fileId=doc_id,
+            media_body=media,
+            fields='id, size'
+        ).execute()
+        upload_type = 'updated'
+    else:
+        # Create new document with multipart upload
+        # Set mimeType to Google Docs format for automatic markdown conversion
+        file_name = file_path.stem
+        file_metadata = {
+            'name': file_name,
+            'mimeType': 'application/vnd.google-apps.document',
+            'description': 'Auto-converted from markdown source',
+            'parents': [parent_folder_id]
+        }
+        doc = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, size'
+        ).execute()
+        upload_type = 'created'
+    
+    file_size_mb = float(doc.get('size', 0)) / (1024 * 1024)
+    return file_size_mb, upload_type
 
 def check_existing_docs(service, folder_id, names_to_check=None):
     """Check for existing documents in the folder."""
@@ -310,29 +391,44 @@ def main():
         existing_doc_id = existing_docs.get(doc_name)
         
         try:
-            file_size = upsert_markdown_file(
+            file_size_mb, upload_type = upsert_markdown_file(
                 service=service,
                 file_path=markdown_file,
                 parent_folder_id=folder_id,
                 doc_id=existing_doc_id,
             )
-            rounded_size_mb = round(file_size, 2)
+            rounded_size_mb = round(file_size_mb, 2)
             total_processed_size_mb += rounded_size_mb
 
-            if existing_doc_id:
+            if upload_type == 'updated':
                 updated_upload_count += 1
-            else:
+            else:  # 'created'
                 new_upload_count += 1
 
             topic = topic_by_stem.get(doc_name)
             if topic:
                 successful_topics.add(topic)
-        except Exception as e:
+        except HttpError as e:
+            status_code = e.resp.status
+            error_msg = f"HTTP {status_code}: {e.error_details}"
             failed_uploads.append({
                 'file': markdown_file.name,
-                'error': str(e)
+                'error': error_msg,
+                'status_code': status_code
             })
-            print(f"\n✗ Failed to upload {markdown_file.name}: {e}")
+            print(f"\n✗ Failed to upload {markdown_file.name}: {error_msg}")
+            topic = topic_by_stem.get(doc_name)
+            if topic:
+                failed_topics.add(topic)
+        except Exception as e:
+            error_type = type(e).__name__
+            error_msg = f"{error_type}: {str(e)}"
+            failed_uploads.append({
+                'file': markdown_file.name,
+                'error': error_msg,
+                'status_code': None
+            })
+            print(f"\n✗ Failed to upload {markdown_file.name}: {error_msg}")
             topic = topic_by_stem.get(doc_name)
             if topic:
                 failed_topics.add(topic)
@@ -348,11 +444,12 @@ def main():
     if failed_uploads:
         print("\nFailed uploads:")
         for failed in failed_uploads:
-            print(f"  - {failed['file']}: {failed['error']}")
+            status_info = f" (HTTP {failed['status_code']})" if failed.get('status_code') else ""
+            print(f"  - {failed['file']}: {failed['error']}{status_info}")
     
     total_uploaded = new_upload_count + updated_upload_count
     if total_uploaded > 0:
-        print(f"\nTotal processed: {total_processed_size_mb:.2f} MB")
+        print(f"\nTotal processed: {total_processed_size_mb:.2f} MB ({total_uploaded} files)")
 
     if not args.all_sources:
         clear_needs_upload(
@@ -361,9 +458,9 @@ def main():
             failed_topics=failed_topics,
         )
         if failed_topics:
-            print(f"Remaining topics in needs_upload (failed): {len(failed_topics)}")
+            print(f"⚠ Remaining topics in needs_upload (failed): {len(failed_topics)}")
         else:
-            print("Cleared needs_upload after successful upload")
+            print("✓ Cleared needs_upload after successful upload")
     
     print(f"\nGoogle Drive folder: https://drive.google.com/drive/folders/{folder_id}")
 
