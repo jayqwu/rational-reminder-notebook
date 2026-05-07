@@ -156,7 +156,7 @@ def popularity_to_tier(value):
     else:
         return "Very Low"
 
-def append_episode_markdown(target, category, episode, include_content=False):
+def append_episode_markdown(target, category, episode, include_content=False, embed_citations=True):
     """Append episode markdown to target list.
 
     Args:
@@ -205,7 +205,7 @@ def append_episode_markdown(target, category, episode, include_content=False):
     if include_content:
         target.append("### Content\n\n")
         for paragraph in episode['content']:
-            if len(paragraph.split()) > CITATION_LEN and citation:
+            if embed_citations and len(paragraph.split()) > CITATION_LEN and citation:
                 paragraph += f" ({citation})"
             target.append(f"{paragraph}\n\n")
 
@@ -399,16 +399,16 @@ def parse_args():
     # Create mutually exclusive group for source selection
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument(
-        "--kitces",
+        "--finance-friday",
         action="store_true",
-        help="Include content from the Kitces blog in addition to Rational Reminder"
+        help="Include content from the Kitces blog in addition to Rational Reminder (Finance Friday mode)"
     )
     source_group.add_argument(
         "--source-dirs",
         nargs="+",
         help=(
             "Source directories containing JSON files "
-            f"(default: {' '.join(DEFAULT_SOURCE_DIRS)}; add --kitces to include {KITCES_SOURCE_DIR})"
+            f"(default: {' '.join(DEFAULT_SOURCE_DIRS)}; add --finance-friday to include {KITCES_SOURCE_DIR})"
         )
     )
     
@@ -442,7 +442,7 @@ def main():
     load_dotenv()
 
     # Handle mutually exclusive source options
-    if args.kitces:
+    if args.finance_friday:
         args.source_dirs = DEFAULT_SOURCE_DIRS + [KITCES_SOURCE_DIR]
     elif args.source_dirs is None:
         args.source_dirs = DEFAULT_SOURCE_DIRS 
@@ -746,7 +746,7 @@ def main():
         markdown_full.append(f"## Topic Description\n\n{description}\n\n")
         markdown_full.append(f"Pieces of Content: {len(episode_batch)}\n\n")
         
-        if args.kitces:
+        if args.finance_friday:
             markdown_full.append(
                 "Source: [Rational Reminder Podcast](https://rationalreminder.ca/podcast/) and "
                 "[Kitces](https://www.kitces.com/)\n\n"
@@ -762,7 +762,13 @@ def main():
         # Add episodes
         for episode in episode_batch:
             append_episode_markdown(markdown_summary, base_filename, episode, include_content=False)
-            append_episode_markdown(markdown_full, base_filename, episode, include_content=True)
+            append_episode_markdown(
+                markdown_full,
+                base_filename,
+                episode,
+                include_content=True,
+                embed_citations=not args.finance_friday,
+            )
 
         if category in topics_to_update:
             with open(summary_path, 'w', encoding='utf-8') as f:

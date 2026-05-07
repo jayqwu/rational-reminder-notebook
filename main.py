@@ -8,7 +8,7 @@ Usage:
     python main.py --help                      # Show all options
     python main.py --force                     # Force re-scrape even if URLs are cached
     python main.py --scrape-retry-failed       # Retry failed episodes during scrape
-    python main.py --kitces                    # Include Kitces content in addition to Rational Reminder
+    python main.py --finance-friday            # Include Kitces content in addition to Rational Reminder
     python main.py --min-percentile 50         # Use different percentile threshold
     python main.py --skip-categorize           # Skip categorization
     python main.py --skip-upload               # Skip upload to Google Docs
@@ -61,9 +61,9 @@ def parse_args():
         help="Skip the categorization step"
     )
     parser.add_argument(
-        "--kitces",
+        "--finance-friday",
         action="store_true",
-        help="Include Kitces content in addition to Rational Reminder"
+        help="Include Kitces content and enable Finance Friday mode"
     )
     parser.add_argument(
         "--min-percentile",
@@ -181,7 +181,7 @@ def main():
             rr_cmd.append("--retry-failed")
             kitces_cmd.append("--retry-failed")
 
-        if args.kitces:
+        if args.finance_friday:
             scrape_steps = [
                 ("Rational Reminder", rr_cmd),
                 ("Kitces", kitces_cmd),
@@ -219,8 +219,8 @@ def main():
     # Step 3: Categorization
     if not args.skip_categorize:
         categorize_cmd = ["python", "compile_sources.py"]
-        if args.kitces:
-            categorize_cmd.append("--kitces")
+        if args.finance_friday:
+            categorize_cmd.append("--finance-friday")
         if args.min_percentile >-1:
             categorize_cmd.extend(["--min-percentile", str(args.min_percentile)])
         
@@ -242,7 +242,15 @@ def main():
         return 1
 
     # Step 5: Upload to Google Docs
-    if not args.skip_upload:
+    if args.finance_friday:
+        copy_cmd = ["bash", "-c", "cp output/categorized/* ~/Finance-Friday"]
+        if run_command("Copying categorized outputs to Finance Friday folder", copy_cmd):
+            steps_completed.append("Finance Friday copy")
+            steps_skipped.append("Upload")
+        else:
+            print("\nPipeline aborted.")
+            return 1
+    elif not args.skip_upload:
         upload_cmd = ["python", "upload_to_drive.py"]
         if args.upload_all_sources:
             upload_cmd.append("--all-sources")
@@ -275,16 +283,19 @@ def main():
     print("="*70 + "\n")
     
     # Step 6: Generate NotebookLM prompts for the most recent episode
-    latest_title = find_most_recent_episode(source_dirs[0])
-    if latest_title:
-        print("\n" + "="*70)
-        print("NOTEBOOKLM PROMPTS FOR LATEST EPISODE")
-        print("="*70)
-        print(f"\nSummarize the discussion from \"{latest_title}\" into a concise executive summary with a neutral, high-density tone. DO NOT include information from other episodes. Use thematic groupings and highlight specific figures, percentages, and technical metrics.")
-        print(f"\nConsult \"! Source Summary\" to identify which other episodes are most closely related to \"{latest_title}\". Then, using those transcripts, list three related episodes and provide a one sentence description on the specific connection to \"{latest_title}\". You MUST use information from other episodes to determine which are best suited for further exploration on this podcast discussion.")
-        print("\n")
+    if args.finance_friday:
+        print("\n⊘ Skipped: NotebookLM prompts (--finance-friday)")
     else:
-        print("\nNo episodes found to generate prompts.")
+        latest_title = find_most_recent_episode(source_dirs[0])
+        if latest_title:
+            print("\n" + "="*70)
+            print("NOTEBOOKLM PROMPTS FOR LATEST EPISODE")
+            print("="*70)
+            print(f"\nSummarize the discussion from \"{latest_title}\" into a concise executive summary with a neutral, high-density tone. DO NOT include information from other episodes. Use thematic groupings and highlight specific figures, percentages, and technical metrics.")
+            print(f"\nConsult \"! Source Summary\" to identify which other episodes are most closely related to \"{latest_title}\". Then, using those transcripts, list three related episodes and provide a one sentence description on the specific connection to \"{latest_title}\". You MUST use information from other episodes to determine which are best suited for further exploration on this podcast discussion.")
+            print("\n")
+        else:
+            print("\nNo episodes found to generate prompts.")
     
     return 0
 

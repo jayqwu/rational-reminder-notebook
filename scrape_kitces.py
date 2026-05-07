@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 from urllib.parse import urlparse, urljoin, urlunparse
 
-import requests
+from curl_cffi import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 from url_cache import URLCache
@@ -21,6 +21,14 @@ BEST_OF_URL = "https://www.kitces.com/best-of-posts/"
 OUTPUT_DIR = "output/kitces"
 FAILED_URLS_FILE = "output/failed_kitces.json"
 DELAY_BETWEEN_REQUESTS = 0.5 # seconds
+
+REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+}
 
 ALLOWED_CATEGORIES = {
     "annuities",
@@ -89,7 +97,7 @@ def fetch_listing():
     """Fetch and parse the Best Of listing page for candidate URLs."""
     print(f"Fetching Best Of listing: {BEST_OF_URL}")
     try:
-        response = requests.get(BEST_OF_URL, timeout=15)
+        response = requests.get(BEST_OF_URL, headers=REQUEST_HEADERS, impersonate="chrome", timeout=15)
         response.raise_for_status()
     except requests.RequestException as exc:
         print(f"Error fetching listing: {exc}")
@@ -148,7 +156,7 @@ def save_failed_urls(failed_urls, failed_file):
 
 def fetch_article(url):
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, headers=REQUEST_HEADERS, impersonate="chrome", timeout=15)
         response.raise_for_status()
         return response.text
     except requests.RequestException as exc:
