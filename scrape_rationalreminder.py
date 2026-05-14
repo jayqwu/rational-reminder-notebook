@@ -406,6 +406,13 @@ def extract_transcript(html_content, episode_url):
     if not title:
         return None
     
+    # If title doesn't start with "Episode #:", try to extract from URL
+    if not re.match(r'^Episode \d+:', title):
+        match = re.search(r'/podcast/(\d+)$', episode_url)
+        if match:
+            ep_num = match.group(1)
+            title = f"Episode {ep_num}: {title}"
+    
     # Extract YouTube video information
     youtube_data = {}
     
