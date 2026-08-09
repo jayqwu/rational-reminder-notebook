@@ -408,9 +408,11 @@ def extract_transcript(html_content, episode_url):
     
     # If title doesn't start with "Episode #:", try to extract episode number from the title first
     if not re.match(r'^Episode \d+:', title):
-        title_match = re.search(r'\|\s*#(\d+)\b', title)
+        title_match = re.search(r'\s\|\s#(\d+)\b', title)
         if title_match:
-            title = f"Episode {title_match.group(1)}: {title}"
+            ep_num = title_match.group(1)
+            title = re.sub(r'\s\|\s#(\d+)\b', '', title).strip()
+            title = f"Episode {ep_num}: {title}"
         else:
             # Fallback to URL extraction when title isn't already prefixed
             match = re.search(r'/podcast/(\d+)$', episode_url)
