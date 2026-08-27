@@ -48,6 +48,7 @@ EXCLUDE_TITLES = [
     "Retrospective",
     "Episode 389: How the Rational Reminder Podcast is Made",
     "Bonus Episode: Jim Watson: Building a Future for the City: An Interview with the Mayor of Ottawa",
+    "Special Episode",
 ]
 
 # GPU/embedding controls tuned for laptop GPUs

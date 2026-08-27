@@ -291,7 +291,7 @@ def main():
             print("\n" + "="*70)
             print("NOTEBOOKLM PROMPTS FOR LATEST EPISODE")
             print("="*70)
-            print(f"\nSummarize the discussion from \"{latest_title}\" into a concise executive summary with a neutral, high-density tone. DO NOT include information from other episodes. Use thematic groupings and highlight specific figures, percentages, and technical metrics.")
+            print(f"\nSummarize the discussion from \"{latest_title}\" into an executive summary with an academically rigorous, technical tone. DO NOT include information from other episodes. Organize the summary into a few high-level thematic domain headers. Use precise domain terminology rather than generic advice and keep the prose dense and concise. Highlight quantitative rigor by bolding specific data points, percentages, and financial metrics. Be concise and optimize for readability.")
             print(f"\nConsult \"! Source Summary\" to identify which other episodes are most closely related to \"{latest_title}\". Then, using those transcripts, list three related episodes and provide a one sentence description on the specific connection to \"{latest_title}\". You MUST use information from other episodes to determine which are best suited for further exploration on this podcast discussion.")
             print("\n")
         else:
